@@ -78,8 +78,21 @@ bootstrap()
   }
 }
 
+/** Convert a package name into a PascalCase base (`@app/user-profile` -> `UserProfile`). */
+function pascalCase(name: string): string {
+  const base = name.split('/').pop() ?? name
+  return base
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map((w) => w[0]!.toUpperCase() + w.slice(1))
+    .join('')
+}
+
 function libFiles(name: string): FileMap {
-  const cls = 'ExampleService'
+  const base = (name.split('/').pop() ?? name).replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()
+  const pascal = pascalCase(name)
+  const service = `${pascal}Service`
+  const module = `${pascal}Module`
   return {
     'package.json': j({
       name,
@@ -91,14 +104,26 @@ function libFiles(name: string): FileMap {
     }),
     'nestkit.json': j({ type: 'lib' }),
     'tsconfig.json': j(LIB_TSCONFIG),
-    'src/index.ts': `import { Injectable } from '@nestjs/common'
+    [`src/${base}.service.ts`]: `import { Injectable } from '@nestjs/common'
 
 @Injectable()
-export class ${cls} {
+export class ${service} {
   hello(): string {
     return 'hello from ${name}'
   }
 }
+`,
+    [`src/${base}.module.ts`]: `import { Module } from '@nestjs/common'
+import { ${service} } from './${base}.service'
+
+@Module({
+  providers: [${service}],
+  exports: [${service}],
+})
+export class ${module} {}
+`,
+    'src/index.ts': `export * from './${base}.service'
+export * from './${base}.module'
 `,
   }
 }

@@ -88,12 +88,15 @@ registers the workspace glob if missing:
 
 ```bash
 nestkit generate app api          # apps/api — Nest HTTP app (built-in template)
-nestkit generate lib utils        # packages/utils — injectable library
+nestkit generate lib utils        # packages/utils — Nest library (UtilsModule + UtilsService)
 nestkit generate app-frontend web # apps/web — via Vite's own create-vite, then wired in
 nestkit g app api --install       # also runs the package manager install
 ```
 
-`app` and `lib` use built-in templates. **`app-frontend` delegates to Vite's official initializer**
+`app` and `lib` use built-in templates. A generated **lib** ships a ready NestJS module named after
+the package — `generate lib user-profile` creates `UserProfileModule` (which provides and exports
+`UserProfileService`) plus a barrel `index.ts` — so consumers just
+`imports: [UserProfileModule]`. **`app-frontend` delegates to Vite's official initializer**
 (`npm/pnpm/yarn/bun create vite`) and then adds `nestkit.json` and registers the workspace — so you
 get the real Vite scaffold, no custom fork. Omit `--template` to run create-vite **interactively**
 (it prompts for framework + variant); pass `--template react-ts` (or `vue-ts`, `svelte-ts`, …) for a
