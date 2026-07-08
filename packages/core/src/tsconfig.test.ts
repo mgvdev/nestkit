@@ -1,0 +1,54 @@
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { syncTsconfigPaths } from './tsconfig.js'
+
+let root: string
+
+beforeEach(() => {
+  root = mkdtempSync(join(tmpdir(), 'nestkit-ts-'))
+})
+afterEach(() => rmSync(root, { recursive: true, force: true }))
+
+function write(rel: string, content: string) {
+  const abs = join(root, rel)
+  mkdirSync(join(abs, '..'), { recursive: true })
+  writeFileSync(abs, content)
+}
+
+describe('syncTsconfigPaths', () => {
+  beforeEach(() => {
+    write('package.json', JSON.stringify({ workspaces: ['packages/*', 'apps/*'] }))
+    write('packages/utils/package.json', JSON.stringify({ name: '@app/utils' }))
+    write('packages/utils/nestkit.json', JSON.stringify({ type: 'lib' }))
+    write('packages/utils/tsconfig.json', JSON.stringify({ compilerOptions: { strict: true } }))
+    write('apps/api/package.json', JSON.stringify({ name: '@app/api' }))
+    write('apps/api/nestkit.json', JSON.stringify({ type: 'app' }))
+    write('apps/api/tsconfig.json', JSON.stringify({ compilerOptions: { strict: true } }))
+  })
+
+  it('writes lib path aliases into tsconfig.base.json', () => {
+    const res = syncTsconfigPaths(root)
+    expect(res.aliases).toBe(1)
+    const base = JSON.parse(readFileSync(join(root, 'tsconfig.base.json'), 'utf8'))
+    expect(base.compilerOptions.baseUrl).toBe('.')
+    expect(base.compilerOptions.paths['@app/utils']).toEqual(['packages/utils/src/index.ts'])
+    expect(base.compilerOptions.paths['@app/utils/*']).toEqual(['packages/utils/src/*'])
+  })
+
+  it('makes managed package tsconfigs extend the base', () => {
+    const res = syncTsconfigPaths(root)
+    expect(res.extended.sort()).toEqual(['@app/api', '@app/utils'])
+    const api = JSON.parse(readFileSync(join(root, 'apps/api/tsconfig.json'), 'utf8'))
+    expect(api.extends).toBe('../../tsconfig.base.json')
+  })
+
+  it('does not override an existing extends', () => {
+    write('apps/api/tsconfig.json', JSON.stringify({ extends: './custom.json' }))
+    const res = syncTsconfigPaths(root)
+    expect(res.skipped).toContain('@app/api')
+    const api = JSON.parse(readFileSync(join(root, 'apps/api/tsconfig.json'), 'utf8'))
+    expect(api.extends).toBe('./custom.json')
+  })
+})

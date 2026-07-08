@@ -16,7 +16,8 @@ const APP_TSCONFIG = {
     experimentalDecorators: true,
     emitDecoratorMetadata: true,
     outDir: 'dist',
-    rootDir: 'src',
+    // No rootDir: TS path aliases pull lib sources into the program, and the
+    // dts/tsc compilers set rootDir explicitly. Setting it here triggers TS6059.
   },
   include: ['src/**/*.ts'],
 }
@@ -39,6 +40,9 @@ function appFiles(name: string): FileMap {
         '@nestjs/platform-express': '^10.4.15',
         'reflect-metadata': '^0.2.2',
         rxjs: '^7.8.1',
+      },
+      devDependencies: {
+        '@types/node': '^22.10.0',
       },
     }),
     'nestkit.json': j({ type: 'app', entry: 'src/main.ts' }),

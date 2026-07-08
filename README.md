@@ -44,6 +44,15 @@ Each managed package carries a **`nestkit.json`** descriptor:
 - **Apps** are transformed with SWC and run with `node <outDir>/main.js`.
 - **Frontend apps** are driven by the Vite adapter (its own build / dev server + HMR).
 
+### Importing libraries (autocompletion)
+
+`nestkit sync` maintains a root `tsconfig.base.json` with `paths` aliases mapping each library to its
+source (`@scope/lib` → `packages/lib/src/index.ts`), and makes every package's tsconfig extend it —
+so you get **type checking and IDE autocompletion straight from source, no build required**.
+`generate` runs it automatically; run `nestkit sync` once in an existing repo to wire it up. For the
+app to run, also add the library to its `dependencies` (`"@scope/lib": "*"`) — the runtime resolves
+the built `dist/` via the workspace symlink, while types come from the alias.
+
 ## Commands
 
 ```bash
@@ -54,6 +63,7 @@ nestkit build <project>          # build a project and its local-dep closure
 nestkit build --all              # build every managed project
 nestkit dev <project>            # build, run and watch with restart on change
 nestkit typecheck                # tsc --noEmit across apps + libs
+nestkit sync                     # generate tsconfig.base.json path aliases for libs
 nestkit clean [projects...]      # remove build outputs
 nestkit migrate-from-nest-cli    # generate nestkit.json from nest-cli.json (dry-run)
 ```

@@ -7,6 +7,7 @@ import { generateCommand } from './commands/generate.js'
 import { graphCommand } from './commands/graph.js'
 import { initCommand } from './commands/init.js'
 import { migrateCommand } from './commands/migrate.js'
+import { syncCommand } from './commands/sync.js'
 import { typecheckCommand } from './commands/typecheck.js'
 
 const main = defineCommand({
@@ -24,6 +25,7 @@ const main = defineCommand({
     build: buildCommand,
     dev: devCommand,
     typecheck: typecheckCommand,
+    sync: syncCommand,
     clean: cleanCommand,
     'migrate-from-nest-cli': migrateCommand,
   },

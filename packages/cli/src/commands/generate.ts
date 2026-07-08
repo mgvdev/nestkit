@@ -7,6 +7,7 @@ import {
   detectPackageManager,
   ensureWorkspaceGlob,
   logger,
+  syncTsconfigPaths,
 } from '@nestkit/core'
 import { defineCommand } from 'citty'
 import { type FileMap, templateFor } from '../templates.js'
@@ -152,6 +153,10 @@ export const generateCommand = defineCommand({
 
     const changed = ensureWorkspaceGlob(root, `${dir}/*`)
     if (changed) logger.info(`Registered ${c.dim(`${dir}/*`)} as a workspace.`)
+
+    // Keep tsconfig path aliases in sync so libs import by name with autocompletion.
+    const sync = syncTsconfigPaths(root)
+    if (sync.aliases > 0) logger.info(`Updated ${sync.aliases} tsconfig path alias(es).`)
 
     if (args.install) {
       const cmd = INSTALL_CMD[pm]!
