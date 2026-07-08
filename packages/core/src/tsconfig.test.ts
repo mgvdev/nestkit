@@ -44,6 +44,28 @@ describe('syncTsconfigPaths', () => {
     expect(api.extends).toBe('../../tsconfig.base.json')
   })
 
+  it('strips rootDir so alias-to-source imports do not trip TS6059', () => {
+    write(
+      'apps/api/tsconfig.json',
+      JSON.stringify({ compilerOptions: { strict: true, rootDir: 'src' } }),
+    )
+    syncTsconfigPaths(root)
+    const api = JSON.parse(readFileSync(join(root, 'apps/api/tsconfig.json'), 'utf8'))
+    expect(api.compilerOptions.rootDir).toBeUndefined()
+    expect(api.extends).toBe('../../tsconfig.base.json')
+  })
+
+  it('still strips rootDir even when the tsconfig extends another config', () => {
+    write(
+      'apps/api/tsconfig.json',
+      JSON.stringify({ extends: './custom.json', compilerOptions: { rootDir: 'src' } }),
+    )
+    syncTsconfigPaths(root)
+    const api = JSON.parse(readFileSync(join(root, 'apps/api/tsconfig.json'), 'utf8'))
+    expect(api.compilerOptions.rootDir).toBeUndefined()
+    expect(api.extends).toBe('./custom.json')
+  })
+
   it('does not override an existing extends', () => {
     write('apps/api/tsconfig.json', JSON.stringify({ extends: './custom.json' }))
     const res = syncTsconfigPaths(root)

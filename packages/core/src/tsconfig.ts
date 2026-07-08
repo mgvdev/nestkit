@@ -62,15 +62,26 @@ export function syncTsconfigPaths(root: string): SyncResult {
       skipped.push(p.name)
       continue
     }
-    const rel = relPosix(p.dir, baseFile)
-    if (cfg.extends === rel) continue
-    if (cfg.extends) {
-      skipped.push(p.name) // already extends something else — leave it alone
-      continue
+    let changed = false
+
+    // rootDir breaks alias-to-source: importing a lib's src pulls files outside the
+    // consumer's rootDir (TS6059). The dts/tsc compilers set rootDir explicitly, so it's
+    // safe to drop it here.
+    if (cfg.compilerOptions && 'rootDir' in cfg.compilerOptions) {
+      delete cfg.compilerOptions.rootDir
+      changed = true
     }
-    cfg.extends = rel
-    writeFileSync(p.tsconfig, `${JSON.stringify(cfg, null, 2)}\n`)
-    extended.push(p.name)
+
+    const rel = relPosix(p.dir, baseFile)
+    if (!cfg.extends) {
+      cfg.extends = rel
+      changed = true
+      extended.push(p.name)
+    } else if (cfg.extends !== rel) {
+      skipped.push(p.name) // already extends another config — don't touch `extends`
+    }
+
+    if (changed) writeFileSync(p.tsconfig, `${JSON.stringify(cfg, null, 2)}\n`)
   }
 
   return { baseFile, aliases: libs.length, extended, skipped }
