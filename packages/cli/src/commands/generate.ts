@@ -52,8 +52,7 @@ export const generateCommand = defineCommand({
     name: { type: 'positional', required: true, description: 'Package name (bare or scoped).' },
     dir: {
       type: 'string',
-      default: 'packages',
-      description: 'Workspace dir to create the package in.',
+      description: 'Workspace dir (default: apps/ for apps, packages/ for libs).',
     },
     scope: { type: 'string', description: 'npm scope, e.g. @app (defaults to the root scope).' },
     install: { type: 'boolean', description: 'Run the package manager install afterwards.' },
@@ -68,24 +67,24 @@ export const generateCommand = defineCommand({
     }
 
     const root = process.cwd()
+    // Apps live in apps/, libraries in packages/, unless --dir overrides.
+    const dir = args.dir ?? (kind === 'lib' ? 'packages' : 'apps')
     const bareName = args.name.startsWith('@') ? (args.name.split('/')[1] ?? args.name) : args.name
     const pkgName = resolveName(root, args.name, args.scope)
-    const targetDir = join(root, args.dir, bareName)
+    const targetDir = join(root, dir, bareName)
 
     if (existsSync(targetDir)) {
-      logger.error(`Target already exists: ${join(args.dir, bareName)}`)
+      logger.error(`Target already exists: ${join(dir, bareName)}`)
       process.exitCode = 1
       return
     }
 
     const files = templateFor(kind, pkgName)
-    logger.info(
-      `Generating ${c.cyan(kind)} ${c.bold(pkgName)} in ${c.dim(join(args.dir, bareName))}`,
-    )
+    logger.info(`Generating ${c.cyan(kind)} ${c.bold(pkgName)} in ${c.dim(join(dir, bareName))}`)
 
     for (const [rel, content] of Object.entries(files)) {
       const dest = join(targetDir, rel)
-      logger.log(`  ${c.green('+')} ${join(args.dir, bareName, rel)}`)
+      logger.log(`  ${c.green('+')} ${join(dir, bareName, rel)}`)
       if (!args.dry) {
         mkdirSync(dirname(dest), { recursive: true })
         writeFileSync(dest, content)
@@ -97,8 +96,8 @@ export const generateCommand = defineCommand({
       return
     }
 
-    const changed = ensureWorkspaceGlob(root, `${args.dir}/*`)
-    if (changed) logger.info(`Registered ${c.dim(`${args.dir}/*`)} as a workspace.`)
+    const changed = ensureWorkspaceGlob(root, `${dir}/*`)
+    if (changed) logger.info(`Registered ${c.dim(`${dir}/*`)} as a workspace.`)
 
     const pm = detectPackageManager(root)
     if (args.install) {

@@ -77,13 +77,14 @@ package directory name.
 registers the workspace glob if missing:
 
 ```bash
-nestkit generate app api          # packages/api — Nest HTTP app
+nestkit generate app api          # apps/api — Nest HTTP app
 nestkit generate lib utils        # packages/utils — injectable library
-nestkit generate app-frontend web # packages/web — Vite app
+nestkit generate app-frontend web # apps/web — Vite app
 nestkit g app api --install       # also runs the package manager install
 ```
 
-Options: `--dir <dir>` (default `packages`), `--scope @foo` (defaults to the root scope),
+Apps land in `apps/`, libraries in `packages/` (each glob is registered as a workspace on first
+use). Options: `--dir <dir>` (override the target dir), `--scope @foo` (defaults to the root scope),
 `--install`, `--dry`.
 
 ## Example
