@@ -137,6 +137,11 @@ only the apps that depend on it; a process that crashes logs its exit and leaves
 (a file change restarts it). Only `app` / `app-frontend` projects are runnable — pointing `dev` at a
 lib is an error.
 
+## Documentation
+
+Full docs live in [`documentation/`](./documentation/index.md) — getting started, concepts, the
+`nestkit.json` reference, every command, package-manager notes, migration, and troubleshooting.
+
 ## Example
 
 See [`examples/monorepo`](./examples/monorepo) — a Nest HTTP app, a local library consumed via DI,
