@@ -62,6 +62,7 @@ nestkit graph [--json]           # print the project graph and build order
 nestkit build <project>          # build a project and its local-dep closure
 nestkit build --all              # build every managed project
 nestkit add <lib> --to <app>     # add a local lib as an app dependency (+ install + sync)
+nestkit install                  # install all workspace deps via the detected PM (alias: i)
 nestkit dev <projects…>          # run one or more projects (watch + restart); comma list or --all
 nestkit typecheck                # tsc --noEmit across apps + libs
 nestkit sync                     # generate tsconfig.base.json path aliases for libs

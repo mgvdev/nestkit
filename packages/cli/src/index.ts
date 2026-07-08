@@ -7,6 +7,7 @@ import { devCommand } from './commands/dev.js'
 import { generateCommand } from './commands/generate.js'
 import { graphCommand } from './commands/graph.js'
 import { initCommand } from './commands/init.js'
+import { installCommand } from './commands/install.js'
 import { migrateCommand } from './commands/migrate.js'
 import { syncCommand } from './commands/sync.js'
 import { typecheckCommand } from './commands/typecheck.js'
@@ -19,6 +20,8 @@ const main = defineCommand({
   },
   subCommands: {
     init: initCommand,
+    install: installCommand,
+    i: installCommand,
     generate: generateCommand,
     g: generateCommand,
     new: generateCommand,
