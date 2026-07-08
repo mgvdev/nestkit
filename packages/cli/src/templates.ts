@@ -8,8 +8,8 @@ const j = (o: unknown) => `${JSON.stringify(o, null, 2)}\n`
 const APP_TSCONFIG = {
   compilerOptions: {
     target: 'ES2022',
-    module: 'CommonJS',
-    moduleResolution: 'Node',
+    module: 'NodeNext',
+    moduleResolution: 'NodeNext',
     strict: true,
     esModuleInterop: true,
     skipLibCheck: true,
