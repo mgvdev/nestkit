@@ -113,7 +113,8 @@ export function syncTsconfigPaths(root: string): SyncResult {
     // consumer's rootDir (TS6059). The dts/tsc compilers set rootDir explicitly, so it's
     // safe to drop it here.
     if (cfg.compilerOptions && 'rootDir' in cfg.compilerOptions) {
-      delete cfg.compilerOptions.rootDir
+      // Assigning undefined (rather than `delete`) drops the key from JSON output.
+      cfg.compilerOptions.rootDir = undefined
       changed = true
     }
 

@@ -7,6 +7,11 @@ export interface BuildContext {
   root: string
   /** True in dev/watch mode (adapters may skip work like dts). */
   watch: boolean
+  /**
+   * Optional output sink for multi-process dev. When set, adapters route their
+   * logs here (labeled + multiplexed) instead of writing straight to stdout.
+   */
+  emit?: (chunk: string, stream: 'out' | 'err') => void
 }
 
 export interface BuildResult {

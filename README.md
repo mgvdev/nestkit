@@ -62,7 +62,7 @@ nestkit graph [--json]           # print the project graph and build order
 nestkit build <project>          # build a project and its local-dep closure
 nestkit build --all              # build every managed project
 nestkit add <lib> --to <app>     # add a local lib as an app dependency (+ install + sync)
-nestkit dev <project>            # build, run and watch with restart on change
+nestkit dev <projects…>          # run one or more projects (watch + restart); comma list or --all
 nestkit typecheck                # tsc --noEmit across apps + libs
 nestkit sync                     # generate tsconfig.base.json path aliases for libs
 nestkit clean [projects...]      # remove build outputs
@@ -118,6 +118,23 @@ nestkit add bird --to api    # adds "@package/bird": "*" to apps/api, installs, 
 ```
 
 Then `import { BirdModule } from '@package/bird'` and add it to your module's `imports`.
+
+### Running several projects at once
+
+`dev` accepts multiple targets and runs each as its own process, with labeled, color-coded output so
+the interleaved console stays readable:
+
+```bash
+nestkit dev api,web          # comma-separated
+nestkit dev api web          # or space-separated
+nestkit dev --all            # every app + app-frontend (libs are watched, not run)
+nestkit dev api,web --tui    # split-panes view (TTY only; falls back to prefixed lines)
+```
+
+Output is prefixed per process (`[api] …`, `[web] …`). Editing a library rebuilds it and restarts
+only the apps that depend on it; a process that crashes logs its exit and leaves the others running
+(a file change restarts it). Only `app` / `app-frontend` projects are runnable — pointing `dev` at a
+lib is an error.
 
 ## Example
 

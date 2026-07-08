@@ -1,5 +1,6 @@
-import type { LoggerService } from '@ex/logger'
 import { Controller, Get } from '@nestjs/common'
+// Value import (not `import type`): Nest DI needs the class at runtime for decorator metadata.
+import { LoggerService } from '@ex/logger'
 
 @Controller()
 export class AppController {

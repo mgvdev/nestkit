@@ -17,10 +17,14 @@ export class ViteAdapter implements FrontendAdapter {
   }
 
   async serve(ctx: BuildContext): Promise<Closable & { url?: string }> {
-    const { createServer } = await import('vite')
-    const server = await createServer({ root: ctx.project.dir })
+    const vite = await import('vite')
+    const { createServer } = vite
+
+    // In multi-process dev, route Vite's logs through nestkit's labeled sink.
+    const customLogger = ctx.emit ? makeViteLogger(vite, ctx.emit) : undefined
+    const server = await createServer({ root: ctx.project.dir, customLogger })
     await server.listen()
-    server.printUrls()
+    if (!ctx.emit) server.printUrls()
     const url = server.resolvedUrls?.local?.[0]
     return {
       url,
@@ -28,6 +32,22 @@ export class ViteAdapter implements FrontendAdapter {
         await server.close()
       },
     }
+  }
+}
+
+/** A Vite logger that forwards messages to nestkit's labeled output sink. */
+function makeViteLogger(
+  vite: typeof import('vite'),
+  emit: (chunk: string, stream: 'out' | 'err') => void,
+) {
+  const base = vite.createLogger('info', { allowClearScreen: false })
+  return {
+    ...base,
+    info: (msg: string) => emit(`${msg}\n`, 'out'),
+    warn: (msg: string) => emit(`${msg}\n`, 'err'),
+    warnOnce: (msg: string) => emit(`${msg}\n`, 'err'),
+    error: (msg: string) => emit(`${msg}\n`, 'err'),
+    clearScreen: () => {},
   }
 }
 

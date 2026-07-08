@@ -1,24 +1,31 @@
 import { type ChildProcess, spawn } from 'node:child_process'
 import { type FSWatcher, watch as chokidarWatch } from 'chokidar'
 import type { BuildEnv } from './compiler.js'
-import { resolveProjectName, selectWithDeps } from './graph.js'
+import { type OutputSink, createOutput } from './dev-output.js'
+import { type ProjectGraph, resolveProjectName, selectWithDeps, topoSort } from './graph.js'
 import { c, logger, ms } from './logger.js'
 import { buildProject, loadWorkspaceGraph } from './orchestrator.js'
 import type { Project } from './types.js'
 
 export interface DevOptions {
   root: string
-  target: string
+  /** Project names/refs to run. Comma lists are already split by the caller. */
+  targets?: string[]
+  /** Single target (back-compat); merged into `targets`. */
+  target?: string
+  /** Run every managed app + app-frontend. */
+  all?: boolean
   env: BuildEnv
   /** Run tsc typecheck out-of-band on changes. Default true. */
   typecheck?: boolean
+  /** Use the split-panes TUI (falls back to prefixed lines off a TTY). */
+  tui?: boolean
 }
 
 export interface DevController {
   stop(): Promise<void>
 }
 
-/** Debounce a zero-arg async function, coalescing bursts of calls. */
 function debounce(fn: () => void, delayMs: number): () => void {
   let timer: ReturnType<typeof setTimeout> | null = null
   return () => {
@@ -27,57 +34,132 @@ function debounce(fn: () => void, delayMs: number): () => void {
   }
 }
 
+const isRunnable = (p: Project) => p.type === 'app' || p.type === 'app-frontend'
+
 /**
- * Start dev mode for a project: build its local-dep closure, run the app,
- * and watch every source dir to rebuild + restart on change.
+ * Resolve the runnable dev targets from a request. `all` selects every managed
+ * app + app-frontend; otherwise each ref is resolved and must be runnable.
+ * Throws on unknown, unmanaged, or non-runnable (lib) targets.
+ */
+export function resolveDevTargets(
+  graph: ProjectGraph,
+  opts: { targets?: string[]; target?: string; all?: boolean },
+): Project[] {
+  const requested = opts.all
+    ? [...graph.nodes.values()].filter((p) => p.managed && isRunnable(p)).map((p) => p.name)
+    : [...(opts.targets ?? []), ...(opts.target ? [opts.target] : [])].map((t) =>
+        resolveProjectName(graph, t),
+      )
+
+  const runnables: Project[] = []
+  const seen = new Set<string>()
+  for (const name of requested) {
+    if (seen.has(name)) continue
+    seen.add(name)
+    const p = graph.nodes.get(name)!
+    if (!p.managed) throw new Error(`Project "${name}" has no nestkit.json`)
+    if (!isRunnable(p)) {
+      throw new Error(
+        `Project "${name}" is a ${p.type ?? 'unknown'} — libs aren't runnable; add it to an app instead.`,
+      )
+    }
+    runnables.push(p)
+  }
+  if (runnables.length === 0) throw new Error('No dev targets. Pass project name(s) or --all.')
+  return runnables
+}
+
+/** Short, unique labels for runners (unscoped name; full name on collision). */
+function makeLabels(runnables: Project[]): Map<string, string> {
+  const counts = new Map<string, number>()
+  for (const r of runnables) {
+    const base = r.name.split('/').pop()!
+    counts.set(base, (counts.get(base) ?? 0) + 1)
+  }
+  const labels = new Map<string, string>()
+  for (const r of runnables) {
+    const base = r.name.split('/').pop()!
+    labels.set(r.name, (counts.get(base) ?? 0) > 1 ? r.name : base)
+  }
+  return labels
+}
+
+/**
+ * Run one or more projects in dev mode in parallel: build the union of their
+ * local-dep closures, start a process per runnable target with labeled output,
+ * and watch every source dir to rebuild + restart the affected targets.
  */
 export async function dev(opts: DevOptions): Promise<DevController> {
   const { graph } = loadWorkspaceGraph(opts.root)
-  const targetName = resolveProjectName(graph, opts.target)
-  const target = graph.nodes.get(targetName)!
-  if (!target.managed) throw new Error(`Project "${targetName}" has no nestkit.json`)
+  const runnables = resolveDevTargets(graph, opts)
+  const labelOf = makeLabels(runnables)
 
-  const closure = [...selectWithDeps(graph, [targetName])]
-    .map((n) => graph.nodes.get(n)!)
-    .filter((p) => p.managed)
+  // Union of every target's local-dep closure, plus which targets each project feeds.
+  const watched = new Map<string, Project>()
+  const dependents = new Map<string, string[]>()
+  for (const r of runnables) {
+    for (const n of selectWithDeps(graph, [r.name])) {
+      const p = graph.nodes.get(n)!
+      if (!p.managed) continue
+      watched.set(n, p)
+      ;(dependents.get(n) ?? dependents.set(n, []).get(n)!).push(r.name)
+    }
+  }
 
-  // Initial build of the whole closure (libs first is not required for swc transform,
-  // but keeps dist present before the app boots).
-  logger.start(`Building ${closure.length} project(s) for dev...`)
-  for (const p of closure) {
+  const sink = createOutput(
+    runnables.map((r) => labelOf.get(r.name)!),
+    opts.tui ?? false,
+  )
+
+  // Build the whole union once, in dependency order.
+  const { order } = topoSort(graph)
+  const buildList = order.filter((n) => watched.has(n)).map((n) => watched.get(n)!)
+  logger.start(`Building ${buildList.length} project(s) for dev...`)
+  for (const p of buildList) {
     const r = await buildProject(p, opts.root, opts.env, true)
     logger.success(`${c.bold(p.name)} ${c.dim(`(${p.type})`)} in ${ms(r.durationMs)}`)
   }
 
-  const runner = createRunner(target, opts)
-  runner.start()
+  const runners = new Map<string, Runner>()
+  for (const r of runnables) {
+    const runner = createRunner(r, labelOf.get(r.name)!, opts, sink)
+    runners.set(r.name, runner)
+    runner.start()
+  }
 
   const rebuild = async (p: Project) => {
     const t0 = performance.now()
     try {
       await buildProject(p, opts.root, opts.env, true)
-      logger.info(`Rebuilt ${c.bold(p.name)} in ${ms(performance.now() - t0)}`)
-      runner.restart()
-      if (opts.typecheck !== false) runner.typecheckBackground()
+      for (const rname of dependents.get(p.name) ?? []) {
+        const runner = runners.get(rname)
+        if (!runner) continue
+        runner.note(`${p.name} changed — restarting (${ms(performance.now() - t0)})`)
+        runner.restart()
+        if (opts.typecheck !== false) runner.typecheckBackground()
+      }
     } catch (err) {
       logger.error(`Rebuild of ${p.name} failed: ${(err as Error).message}`)
     }
   }
 
   const watchers: FSWatcher[] = []
-  for (const p of closure) {
+  for (const p of watched.values()) {
     const trigger = debounce(() => void rebuild(p), 120)
     const w = chokidarWatch(p.sourceDir, { ignoreInitial: true, ignored: /(^|[/\\])\../ })
     w.on('all', trigger)
     watchers.push(w)
   }
 
-  logger.box(`nestkit dev — watching ${closure.length} project(s). Press Ctrl+C to stop.`)
+  logger.box(
+    `nestkit dev — ${runnables.length} process(es), watching ${watched.size} project(s). Ctrl+C to stop.`,
+  )
 
   return {
     async stop() {
       await Promise.all(watchers.map((w) => w.close()))
-      await runner.stop()
+      await Promise.all([...runners.values()].map((r) => r.stop()))
+      sink.close()
     },
   }
 }
@@ -86,11 +168,12 @@ interface Runner {
   start(): void
   restart(): void
   stop(): Promise<void>
+  note(line: string): void
   typecheckBackground(): void
 }
 
-/** Manages the app child process (or a frontend dev server). */
-function createRunner(target: Project, opts: DevOptions): Runner {
+/** Manages one runnable target's process (app child process or frontend dev server). */
+function createRunner(target: Project, label: string, opts: DevOptions, sink: OutputSink): Runner {
   let child: ChildProcess | null = null
   let frontend: { close(): Promise<void> } | null = null
   let typechecking = false
@@ -99,12 +182,14 @@ function createRunner(target: Project, opts: DevOptions): Runner {
     if (!target.entryOut) throw new Error(`App "${target.name}" has no entry output`)
     child = spawn(process.execPath, [target.entryOut], {
       cwd: target.dir,
-      stdio: 'inherit',
+      stdio: ['inherit', 'pipe', 'pipe'],
       env: process.env,
     })
+    child.stdout?.on('data', (d: Buffer) => sink.write(label, 'out', d.toString()))
+    child.stderr?.on('data', (d: Buffer) => sink.write(label, 'err', d.toString()))
     child.on('exit', (code, signal) => {
       if (code !== null && code !== 0 && !signal) {
-        logger.warn(`${target.name} exited with code ${code}`)
+        sink.write(label, 'err', `exited with code ${code}`)
       }
     })
   }
@@ -126,10 +211,17 @@ function createRunner(target: Project, opts: DevOptions): Runner {
     start() {
       if (target.type === 'app-frontend') {
         const adapter = opts.env.getFrontendAdapter(target.adapter ?? 'vite')
-        void adapter.serve({ project: target, root: opts.root, watch: true }).then((s) => {
-          frontend = s
-          if (s.url) logger.success(`${target.name} serving at ${c.cyan(s.url)}`)
-        })
+        void adapter
+          .serve({
+            project: target,
+            root: opts.root,
+            watch: true,
+            emit: (chunk, stream) => sink.write(label, stream, chunk),
+          })
+          .then((s) => {
+            frontend = s
+            if (s.url) sink.note(label, `serving at ${s.url}`)
+          })
         return
       }
       startApp()
@@ -142,6 +234,9 @@ function createRunner(target: Project, opts: DevOptions): Runner {
       await stopApp()
       if (frontend) await frontend.close()
     },
+    note(line) {
+      sink.note(label, line)
+    },
     typecheckBackground() {
       if (typechecking) return
       typechecking = true
@@ -149,7 +244,7 @@ function createRunner(target: Project, opts: DevOptions): Runner {
         .getTypeChecker()
         .check([target], opts.root)
         .then((r) => {
-          if (!r.ok) logger.warn(`Typecheck: ${r.diagnostics.length} error(s)`)
+          if (!r.ok) sink.note(label, `typecheck: ${r.diagnostics.length} error(s)`)
         })
         .finally(() => {
           typechecking = false
