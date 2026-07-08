@@ -90,6 +90,10 @@ export function syncTsconfigPaths(root: string): SyncResult {
   const base = readJsonLoose<Record<string, any>>(baseFile) ?? {}
   base.compilerOptions ??= {}
   base.compilerOptions.baseUrl = '.'
+  // rootDir at the workspace root keeps every package's src (and any lib src pulled
+  // in via an alias) under a common root, so `declaration`/inferred-rootDir configs
+  // don't trip TS6059. The dts/tsc compilers override rootDir per project at build.
+  base.compilerOptions.rootDir = '.'
   base.compilerOptions.paths = paths
   writeFileSync(baseFile, `${JSON.stringify(base, null, 2)}\n`)
 

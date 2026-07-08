@@ -33,6 +33,7 @@ describe('syncTsconfigPaths', () => {
     expect(res.aliases).toBe(1)
     const base = JSON.parse(readFileSync(join(root, 'tsconfig.base.json'), 'utf8'))
     expect(base.compilerOptions.baseUrl).toBe('.')
+    expect(base.compilerOptions.rootDir).toBe('.')
     expect(base.compilerOptions.paths['@app/utils']).toEqual(['packages/utils/src/index.ts'])
     expect(base.compilerOptions.paths['@app/utils/*']).toEqual(['packages/utils/src/*'])
   })
