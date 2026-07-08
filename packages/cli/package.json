@@ -1,24 +1,47 @@
 {
-  "name": "@nestkit/cli",
+  "name": "@mgvdev/nestkit-cli",
   "version": "0.1.0",
   "description": "nestkit CLI — modern, package-manager-agnostic NestJS workspace engine.",
   "type": "module",
   "license": "MIT",
-  "bin": { "nestkit": "./dist/index.js" },
+  "bin": {
+    "nestkit": "./dist/index.js"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "skills"],
-  "nestBoost": { "skills": ["skills"] },
-  "engines": { "node": ">=20" },
+  "files": [
+    "dist",
+    "skills"
+  ],
+  "nestBoost": {
+    "skills": [
+      "skills"
+    ]
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
-    "@nestkit/adapter-vite": "^0.1.0",
-    "@nestkit/compiler-swc": "^0.1.0",
-    "@nestkit/compiler-tsc": "^0.1.0",
-    "@nestkit/core": "^0.1.0",
+    "@mgvdev/nestkit-adapter-vite": "^0.1.0",
+    "@mgvdev/nestkit-compiler-swc": "^0.1.0",
+    "@mgvdev/nestkit-compiler-tsc": "^0.1.0",
+    "@mgvdev/nestkit-core": "^0.1.0",
     "citty": "^0.1.6",
     "consola": "^3.2.3"
   },
   "peerDependencies": {
     "typescript": ">=5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mgvdev/nestkit.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/mgvdev/nestkit#readme",
+  "bugs": {
+    "url": "https://github.com/mgvdev/nestkit/issues"
   }
 }

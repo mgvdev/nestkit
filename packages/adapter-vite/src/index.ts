@@ -1,5 +1,5 @@
 import { relative } from 'node:path'
-import type { BuildContext, BuildResult, Closable, FrontendAdapter } from '@nestkit/core'
+import type { BuildContext, BuildResult, Closable, FrontendAdapter } from '@mgvdev/nestkit-core'
 
 /** Drives frontend (`app-frontend`) projects through Vite's programmatic API. */
 export class ViteAdapter implements FrontendAdapter {

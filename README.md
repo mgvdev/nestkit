@@ -19,9 +19,9 @@ ordering, dev/watch, typecheck and declaration output.
 ## Install
 
 ```bash
-npm i -D @nestkit/cli @nestkit/core @nestkit/compiler-swc @nestkit/compiler-tsc
+npm i -D @mgvdev/nestkit-cli @mgvdev/nestkit-core @mgvdev/nestkit-compiler-swc @mgvdev/nestkit-compiler-tsc
 # frontend projects:
-npm i -D @nestkit/adapter-vite vite
+npm i -D @mgvdev/nestkit-adapter-vite vite
 ```
 
 ## Concepts
@@ -77,11 +77,11 @@ package directory name.
 
 | Package | Role |
 | --- | --- |
-| `@nestkit/core` | Workspace discovery, project graph, orchestrator, dev runtime, adapter interfaces |
-| `@nestkit/cli` | The `nestkit` command |
-| `@nestkit/compiler-swc` | Default SWC transform (decorator metadata enabled for Nest DI) |
-| `@nestkit/compiler-tsc` | `tsc` typecheck + `.d.ts` generation (and an optional tsc transform) |
-| `@nestkit/adapter-vite` | First-class Vite adapter for frontend apps |
+| `@mgvdev/nestkit-core` | Workspace discovery, project graph, orchestrator, dev runtime, adapter interfaces |
+| `@mgvdev/nestkit-cli` | The `nestkit` command |
+| `@mgvdev/nestkit-compiler-swc` | Default SWC transform (decorator metadata enabled for Nest DI) |
+| `@mgvdev/nestkit-compiler-tsc` | `tsc` typecheck + `.d.ts` generation (and an optional tsc transform) |
+| `@mgvdev/nestkit-adapter-vite` | First-class Vite adapter for frontend apps |
 
 ### Scaffolding
 

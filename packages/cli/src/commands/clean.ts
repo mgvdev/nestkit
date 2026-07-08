@@ -1,4 +1,4 @@
-import { cleanWorkspace } from '@nestkit/core'
+import { cleanWorkspace } from '@mgvdev/nestkit-core'
 import { defineCommand } from 'citty'
 
 export const cleanCommand = defineCommand({

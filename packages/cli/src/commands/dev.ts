@@ -1,4 +1,4 @@
-import { dev, logger } from '@nestkit/core'
+import { dev, logger } from '@mgvdev/nestkit-core'
 import { defineCommand } from 'citty'
 import { createBuildEnv } from '../env.js'
 

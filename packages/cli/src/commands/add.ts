@@ -8,7 +8,7 @@ import {
   logger,
   resolveProjectName,
   syncTsconfigPaths,
-} from '@nestkit/core'
+} from '@mgvdev/nestkit-core'
 import { defineCommand } from 'citty'
 
 const INSTALL_CMD: Record<string, string[]> = {

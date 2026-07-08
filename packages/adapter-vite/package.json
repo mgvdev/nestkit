@@ -1,5 +1,5 @@
 {
-  "name": "@nestkit/adapter-vite",
+  "name": "@mgvdev/nestkit-adapter-vite",
   "version": "0.1.0",
   "description": "First-class Vite adapter for nestkit frontend apps (app-frontend).",
   "type": "module",
@@ -12,15 +12,31 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
-  "engines": { "node": ">=20" },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
-    "@nestkit/core": "^0.1.0"
+    "@mgvdev/nestkit-core": "^0.1.0"
   },
   "peerDependencies": {
     "vite": ">=5.0.0"
   },
   "devDependencies": {
     "vite": "^6.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mgvdev/nestkit.git",
+    "directory": "packages/adapter-vite"
+  },
+  "homepage": "https://github.com/mgvdev/nestkit#readme",
+  "bugs": {
+    "url": "https://github.com/mgvdev/nestkit/issues"
   }
 }

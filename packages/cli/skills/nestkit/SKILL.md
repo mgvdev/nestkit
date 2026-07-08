@@ -9,7 +9,7 @@ nestkit is a modern, package-manager-agnostic NestJS **workspace engine**. It re
 Webpack monorepo mode with a package-based project graph, using **SWC** for transforms (no Webpack)
 and **tsc** for type checking and `.d.ts` generation. NestJS stays the runtime framework.
 
-Detect a nestkit workspace by a per-package `nestkit.json` and/or `@nestkit/cli` in devDependencies.
+Detect a nestkit workspace by a per-package `nestkit.json` and/or `@mgvdev/nestkit-cli` in devDependencies.
 Run every command from the **workspace root** with `npx nestkit <cmd>` (or `pnpm/yarn/bun` equivalent).
 
 ## Project model

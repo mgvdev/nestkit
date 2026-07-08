@@ -1,7 +1,7 @@
-import { viteAdapter } from '@nestkit/adapter-vite'
-import { swcCompiler } from '@nestkit/compiler-swc'
-import { tscCompiler, tscDtsBuilder, tscTypeChecker } from '@nestkit/compiler-tsc'
-import type { BuildEnv, CompilerAdapter, FrontendAdapter } from '@nestkit/core'
+import { viteAdapter } from '@mgvdev/nestkit-adapter-vite'
+import { swcCompiler } from '@mgvdev/nestkit-compiler-swc'
+import { tscCompiler, tscDtsBuilder, tscTypeChecker } from '@mgvdev/nestkit-compiler-tsc'
+import type { BuildEnv, CompilerAdapter, FrontendAdapter } from '@mgvdev/nestkit-core'
 
 const compilers: Record<string, CompilerAdapter> = {
   swc: swcCompiler,

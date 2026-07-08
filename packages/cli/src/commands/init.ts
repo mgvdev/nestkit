@@ -6,7 +6,7 @@ import {
   c,
   discoverWorkspace,
   logger,
-} from '@nestkit/core'
+} from '@mgvdev/nestkit-core'
 import { defineCommand } from 'citty'
 
 function hasDep(pkg: PackageJson, name: string): boolean {

@@ -7,7 +7,7 @@ import type {
   Project,
   TypeChecker,
   TypecheckResult,
-} from '@nestkit/core'
+} from '@mgvdev/nestkit-core'
 import ts from 'typescript'
 
 const formatHost: ts.FormatDiagnosticsHost = {

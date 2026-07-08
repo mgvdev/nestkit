@@ -1,4 +1,4 @@
-import { typecheckWorkspace } from '@nestkit/core'
+import { typecheckWorkspace } from '@mgvdev/nestkit-core'
 import { defineCommand } from 'citty'
 import { createBuildEnv } from '../env.js'
 

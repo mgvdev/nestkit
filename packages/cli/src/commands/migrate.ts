@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
-import { type NestkitProjectConfig, c, logger } from '@nestkit/core'
+import { type NestkitProjectConfig, c, logger } from '@mgvdev/nestkit-core'
 import { defineCommand } from 'citty'
 
 interface NestCliProject {

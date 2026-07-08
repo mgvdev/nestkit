@@ -8,9 +8,9 @@
 ## Install
 
 ```bash
-npm i -D @nestkit/cli @nestkit/core @nestkit/compiler-swc @nestkit/compiler-tsc
+npm i -D @mgvdev/nestkit-cli @mgvdev/nestkit-core @mgvdev/nestkit-compiler-swc @mgvdev/nestkit-compiler-tsc
 # frontend projects:
-npm i -D @nestkit/adapter-vite vite
+npm i -D @mgvdev/nestkit-adapter-vite vite
 ```
 
 Run every command from the **workspace root**, e.g. `npx nestkit <command>`.

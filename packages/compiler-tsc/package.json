@@ -1,5 +1,5 @@
 {
-  "name": "@nestkit/compiler-tsc",
+  "name": "@mgvdev/nestkit-compiler-tsc",
   "version": "0.1.0",
   "description": "TypeScript adapter for nestkit: typecheck (--noEmit) and .d.ts generation for libraries.",
   "type": "module",
@@ -12,12 +12,28 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
-  "engines": { "node": ">=20" },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
-    "@nestkit/core": "^0.1.0"
+    "@mgvdev/nestkit-core": "^0.1.0"
   },
   "peerDependencies": {
     "typescript": ">=5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mgvdev/nestkit.git",
+    "directory": "packages/compiler-tsc"
+  },
+  "homepage": "https://github.com/mgvdev/nestkit#readme",
+  "bugs": {
+    "url": "https://github.com/mgvdev/nestkit/issues"
   }
 }

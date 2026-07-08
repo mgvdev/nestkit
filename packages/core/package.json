@@ -1,5 +1,5 @@
 {
-  "name": "@nestkit/core",
+  "name": "@mgvdev/nestkit-core",
   "version": "0.1.0",
   "description": "nestkit workspace engine: project graph, package-manager detection, orchestrator and dev runtime.",
   "type": "module",
@@ -12,13 +12,29 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
-  "engines": { "node": ">=20" },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "chokidar": "^4.0.1",
     "consola": "^3.2.3",
     "picocolors": "^1.1.1",
     "tinyglobby": "^0.2.10",
     "yaml": "^2.6.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mgvdev/nestkit.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/mgvdev/nestkit#readme",
+  "bugs": {
+    "url": "https://github.com/mgvdev/nestkit/issues"
   }
 }

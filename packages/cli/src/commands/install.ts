@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { c, detectPackageManager, logger } from '@nestkit/core'
+import { c, detectPackageManager, logger } from '@mgvdev/nestkit-core'
 import { defineCommand } from 'citty'
 
 const INSTALL_CMD: Record<string, string[]> = {

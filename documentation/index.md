@@ -27,11 +27,11 @@ Webpack-based monorepo mode with a package-based project graph, using **SWC** fo
 
 | Package | Role |
 | --- | --- |
-| `@nestkit/cli` | The `nestkit` command |
-| `@nestkit/core` | Workspace discovery, project graph, orchestrator, dev runtime, adapter interfaces |
-| `@nestkit/compiler-swc` | Default SWC transform (decorator metadata for Nest DI) |
-| `@nestkit/compiler-tsc` | `tsc` typecheck + `.d.ts` generation |
-| `@nestkit/adapter-vite` | First-class Vite adapter for frontend apps |
+| `@mgvdev/nestkit-cli` | The `nestkit` command |
+| `@mgvdev/nestkit-core` | Workspace discovery, project graph, orchestrator, dev runtime, adapter interfaces |
+| `@mgvdev/nestkit-compiler-swc` | Default SWC transform (decorator metadata for Nest DI) |
+| `@mgvdev/nestkit-compiler-tsc` | `tsc` typecheck + `.d.ts` generation |
+| `@mgvdev/nestkit-adapter-vite` | First-class Vite adapter for frontend apps |
 
 ## Non-goals
 

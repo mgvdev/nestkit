@@ -8,7 +8,7 @@ import {
   ensureWorkspaceGlob,
   logger,
   syncTsconfigPaths,
-} from '@nestkit/core'
+} from '@mgvdev/nestkit-core'
 import { defineCommand } from 'citty'
 import { type FileMap, templateFor } from '../templates.js'
 

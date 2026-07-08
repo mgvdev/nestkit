@@ -1,5 +1,5 @@
 import { relative } from 'node:path'
-import { c, logger, syncTsconfigPaths } from '@nestkit/core'
+import { c, logger, syncTsconfigPaths } from '@mgvdev/nestkit-core'
 import { defineCommand } from 'citty'
 
 export const syncCommand = defineCommand({

@@ -1,4 +1,4 @@
-import { c, loadWorkspaceGraph, logger, topoSort } from '@nestkit/core'
+import { c, loadWorkspaceGraph, logger, topoSort } from '@mgvdev/nestkit-core'
 import { defineCommand } from 'citty'
 
 export const graphCommand = defineCommand({

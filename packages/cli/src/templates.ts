@@ -1,4 +1,4 @@
-import type { ProjectType } from '@nestkit/core'
+import type { ProjectType } from '@mgvdev/nestkit-core'
 
 /** A set of files to write, keyed by path relative to the new package dir. */
 export type FileMap = Record<string, string>

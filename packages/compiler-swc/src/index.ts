@@ -1,6 +1,6 @@
 import { copyFile, mkdir, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, relative } from 'node:path'
-import type { BuildContext, BuildResult, CompilerAdapter } from '@nestkit/core'
+import type { BuildContext, BuildResult, CompilerAdapter } from '@mgvdev/nestkit-core'
 import { type Options as SwcOptions, transformFile } from '@swc/core'
 import { globSync } from 'tinyglobby'
 
