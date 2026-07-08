@@ -77,15 +77,20 @@ package directory name.
 registers the workspace glob if missing:
 
 ```bash
-nestkit generate app api          # apps/api — Nest HTTP app
+nestkit generate app api          # apps/api — Nest HTTP app (built-in template)
 nestkit generate lib utils        # packages/utils — injectable library
-nestkit generate app-frontend web # apps/web — Vite app
+nestkit generate app-frontend web # apps/web — via Vite's own create-vite, then wired in
 nestkit g app api --install       # also runs the package manager install
 ```
 
+`app` and `lib` use built-in templates. **`app-frontend` delegates to Vite's official initializer**
+(`npm/pnpm/yarn/bun create vite`) and then adds `nestkit.json` and registers the workspace — so you
+get the real Vite scaffold, no custom fork. Pick the Vite template with `--template` (default
+`vanilla-ts`, e.g. `react-ts`, `vue-ts`, `svelte-ts`).
+
 Apps land in `apps/`, libraries in `packages/` (each glob is registered as a workspace on first
 use). Options: `--dir <dir>` (override the target dir), `--scope @foo` (defaults to the root scope),
-`--install`, `--dry`.
+`--template <t>`, `--install`, `--dry`.
 
 ## Example
 

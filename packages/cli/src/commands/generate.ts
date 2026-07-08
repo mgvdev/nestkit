@@ -9,7 +9,7 @@ import {
   logger,
 } from '@nestkit/core'
 import { defineCommand } from 'citty'
-import { templateFor } from '../templates.js'
+import { type FileMap, templateFor } from '../templates.js'
 
 const KINDS: Record<string, ProjectType> = {
   app: 'app',
@@ -23,6 +23,20 @@ const INSTALL_CMD: Record<string, string[]> = {
   pnpm: ['pnpm', 'install'],
   yarn: ['yarn'],
   bun: ['bun', 'install'],
+}
+
+/** Build the package-manager-native `create vite` command for a target dir. */
+function createViteCmd(pm: string, target: string, template: string): string[] {
+  switch (pm) {
+    case 'pnpm':
+      return ['pnpm', 'create', 'vite', target, '--template', template]
+    case 'yarn':
+      return ['yarn', 'create', 'vite', target, '--template', template]
+    case 'bun':
+      return ['bun', 'create', 'vite', target, '--template', template]
+    default:
+      return ['npm', 'create', 'vite@latest', target, '--', '--template', template]
+  }
 }
 
 /** Derive the package name, reusing the root scope unless one is given. */
@@ -42,6 +56,17 @@ function rootScope(root: string): string | null {
   return null
 }
 
+function writeFiles(files: FileMap, targetDir: string, targetRel: string): void {
+  for (const [rel, content] of Object.entries(files)) {
+    const dest = join(targetDir, rel)
+    logger.log(`  ${c.green('+')} ${join(targetRel, rel)}`)
+    mkdirSync(dirname(dest), { recursive: true })
+    writeFileSync(dest, content)
+  }
+}
+
+const NESTKIT_FRONTEND = `${JSON.stringify({ type: 'app-frontend', adapter: 'vite' }, null, 2)}\n`
+
 export const generateCommand = defineCommand({
   meta: {
     name: 'generate',
@@ -55,6 +80,10 @@ export const generateCommand = defineCommand({
       description: 'Workspace dir (default: apps/ for apps, packages/ for libs).',
     },
     scope: { type: 'string', description: 'npm scope, e.g. @app (defaults to the root scope).' },
+    template: {
+      type: 'string',
+      description: 'create-vite template for app-frontend (default: vanilla-ts).',
+    },
     install: { type: 'boolean', description: 'Run the package manager install afterwards.' },
     dry: { type: 'boolean', description: 'Preview without writing.' },
   },
@@ -71,35 +100,52 @@ export const generateCommand = defineCommand({
     const dir = args.dir ?? (kind === 'lib' ? 'packages' : 'apps')
     const bareName = args.name.startsWith('@') ? (args.name.split('/')[1] ?? args.name) : args.name
     const pkgName = resolveName(root, args.name, args.scope)
-    const targetDir = join(root, dir, bareName)
+    const targetRel = join(dir, bareName)
+    const targetDir = join(root, targetRel)
 
     if (existsSync(targetDir)) {
-      logger.error(`Target already exists: ${join(dir, bareName)}`)
+      logger.error(`Target already exists: ${targetRel}`)
       process.exitCode = 1
       return
     }
 
-    const files = templateFor(kind, pkgName)
-    logger.info(`Generating ${c.cyan(kind)} ${c.bold(pkgName)} in ${c.dim(join(dir, bareName))}`)
+    const pm = detectPackageManager(root)
 
-    for (const [rel, content] of Object.entries(files)) {
-      const dest = join(targetDir, rel)
-      logger.log(`  ${c.green('+')} ${join(dir, bareName, rel)}`)
-      if (!args.dry) {
-        mkdirSync(dirname(dest), { recursive: true })
-        writeFileSync(dest, content)
+    if (kind === 'app-frontend') {
+      // Delegate scaffolding to Vite's official initializer, then wire it into the monorepo.
+      const template = args.template ?? 'vanilla-ts'
+      const cmd = createViteCmd(pm, targetRel, template)
+      logger.info(`Scaffolding Vite app ${c.bold(bareName)} in ${c.dim(targetRel)}`)
+      logger.log(`  ${c.dim('$')} ${cmd.join(' ')}`)
+      if (args.dry) {
+        logger.info(
+          'Dry run. Would run create-vite, then add nestkit.json + register the workspace.',
+        )
+        return
       }
-    }
-
-    if (args.dry) {
-      logger.info('Dry run. Re-run without --dry to write these files.')
-      return
+      const res = spawnSync(cmd[0]!, cmd.slice(1), { cwd: root, stdio: 'inherit' })
+      if (res.status !== 0 || !existsSync(targetDir)) {
+        logger.warn('create-vite did not complete — writing a minimal Vite template instead.')
+        writeFiles(templateFor('app-frontend', pkgName), targetDir, targetRel)
+      } else {
+        writeFileSync(join(targetDir, 'nestkit.json'), NESTKIT_FRONTEND)
+        logger.log(`  ${c.green('+')} ${join(targetRel, 'nestkit.json')}`)
+      }
+    } else {
+      logger.info(`Generating ${c.cyan(kind)} ${c.bold(pkgName)} in ${c.dim(targetRel)}`)
+      const files = templateFor(kind, pkgName)
+      if (args.dry) {
+        for (const rel of Object.keys(files))
+          logger.log(`  ${c.green('+')} ${join(targetRel, rel)}`)
+        logger.info('Dry run. Re-run without --dry to write these files.')
+        return
+      }
+      writeFiles(files, targetDir, targetRel)
     }
 
     const changed = ensureWorkspaceGlob(root, `${dir}/*`)
     if (changed) logger.info(`Registered ${c.dim(`${dir}/*`)} as a workspace.`)
 
-    const pm = detectPackageManager(root)
     if (args.install) {
       const cmd = INSTALL_CMD[pm]!
       logger.start(`Running ${cmd.join(' ')}...`)
