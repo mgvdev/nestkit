@@ -28,10 +28,11 @@ function inferConfig(dir: string, pkg: PackageJson): NestkitProjectConfig {
 export const initCommand = defineCommand({
   meta: {
     name: 'init',
-    description: 'Generate nestkit.json for workspace packages (dry-run by default).',
+    description:
+      'Generate nestkit.json for workspace packages (writes by default; use --dry to preview).',
   },
   args: {
-    write: { type: 'boolean', description: 'Write files instead of just previewing.' },
+    dry: { type: 'boolean', description: 'Preview changes without writing files.' },
   },
   run({ args }) {
     const ws = discoverWorkspace(process.cwd())
@@ -48,13 +49,13 @@ export const initCommand = defineCommand({
       const cfg = inferConfig(pkg.dir, pkg.packageJson)
       const file = join(pkg.dir, 'nestkit.json')
       logger.log(`  ${c.green('+')} ${pkg.name} → ${c.cyan(cfg.type)}`)
-      if (args.write) {
+      if (!args.dry) {
         writeFileSync(file, `${JSON.stringify(cfg, null, 2)}\n`)
         created++
       }
     }
 
-    if (args.write) logger.success(`Wrote ${created} nestkit.json file(s).`)
-    else logger.info('Dry run. Re-run with --write to create these files.')
+    if (args.dry) logger.info('Dry run. Re-run without --dry to create these files.')
+    else logger.success(`Wrote ${created} nestkit.json file(s).`)
   },
 })

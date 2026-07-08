@@ -47,7 +47,7 @@ Each managed package carries a **`nestkit.json`** descriptor:
 ## Commands
 
 ```bash
-nestkit init                     # scaffold nestkit.json for detected packages (dry-run)
+nestkit init [--dry]             # scaffold nestkit.json for detected packages (writes; --dry to preview)
 nestkit graph [--json]           # print the project graph and build order
 nestkit build <project>          # build a project and its local-dep closure
 nestkit build --all              # build every managed project
