@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/compiler-swc" },
+    { "path": "packages/compiler-tsc" },
+    { "path": "packages/adapter-vite" },
+    { "path": "packages/cli" }
+  ]
+}

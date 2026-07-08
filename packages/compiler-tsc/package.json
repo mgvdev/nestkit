@@ -1,0 +1,23 @@
+{
+  "name": "@nestkit/compiler-tsc",
+  "version": "0.1.0",
+  "description": "TypeScript adapter for nestkit: typecheck (--noEmit) and .d.ts generation for libraries.",
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@nestkit/core": "^0.1.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  }
+}
