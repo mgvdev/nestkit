@@ -83,6 +83,27 @@ describe('syncTsconfigPaths', () => {
     expect(api.extends).toBe('../../tsconfig.base.json')
   })
 
+  it('regenerates paths, dropping stale aliases from renamed/removed libs', () => {
+    // Pre-existing base with junk aliases from earlier experiments.
+    write(
+      'tsconfig.base.json',
+      JSON.stringify({
+        compilerOptions: {
+          baseUrl: '.',
+          paths: {
+            '#bird': ['packages/bird/src/index.ts'],
+            hello: ['packages/hello/src/index.ts'],
+          },
+        },
+      }),
+    )
+    syncTsconfigPaths(root)
+    const base = JSON.parse(readFileSync(join(root, 'tsconfig.base.json'), 'utf8'))
+    expect(Object.keys(base.compilerOptions.paths).sort()).toEqual(['@app/utils', '@app/utils/*'])
+    expect(base.compilerOptions.paths['#bird']).toBeUndefined()
+    expect(base.compilerOptions.paths.hello).toBeUndefined()
+  })
+
   it('does not override an existing extends', () => {
     write('apps/api/tsconfig.json', JSON.stringify({ extends: './custom.json' }))
     const res = syncTsconfigPaths(root)

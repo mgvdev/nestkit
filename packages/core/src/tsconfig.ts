@@ -83,12 +83,14 @@ export function syncTsconfigPaths(root: string): SyncResult {
     paths[`${lib.name}/*`] = [`${relPosix(root, lib.sourceDir)}/*`]
   }
 
-  // Merge into tsconfig.base.json, preserving any unrelated fields.
+  // Write tsconfig.base.json, preserving unrelated fields but fully regenerating
+  // `paths` from the current libraries — so renamed/removed libs don't leave stale
+  // aliases behind. tsconfig.base.json's `paths` are owned by nestkit.
   const baseFile = join(root, 'tsconfig.base.json')
   const base = readJsonLoose<Record<string, any>>(baseFile) ?? {}
   base.compilerOptions ??= {}
   base.compilerOptions.baseUrl = '.'
-  base.compilerOptions.paths = { ...base.compilerOptions.paths, ...paths }
+  base.compilerOptions.paths = paths
   writeFileSync(baseFile, `${JSON.stringify(base, null, 2)}\n`)
 
   // Make each managed package tsconfig extend the base (so aliases apply).
