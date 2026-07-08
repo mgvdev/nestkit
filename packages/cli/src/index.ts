@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { defineCommand, runMain } from 'citty'
+import { addCommand } from './commands/add.js'
 import { buildCommand } from './commands/build.js'
 import { cleanCommand } from './commands/clean.js'
 import { devCommand } from './commands/dev.js'
@@ -23,6 +24,7 @@ const main = defineCommand({
     new: generateCommand,
     graph: graphCommand,
     build: buildCommand,
+    add: addCommand,
     dev: devCommand,
     typecheck: typecheckCommand,
     sync: syncCommand,

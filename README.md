@@ -61,6 +61,7 @@ nestkit generate <kind> <name>   # scaffold a new app | lib | app-frontend packa
 nestkit graph [--json]           # print the project graph and build order
 nestkit build <project>          # build a project and its local-dep closure
 nestkit build --all              # build every managed project
+nestkit add <lib> --to <app>     # add a local lib as an app dependency (+ install + sync)
 nestkit dev <project>            # build, run and watch with restart on change
 nestkit typecheck                # tsc --noEmit across apps + libs
 nestkit sync                     # generate tsconfig.base.json path aliases for libs
@@ -103,8 +104,20 @@ get the real Vite scaffold, no custom fork. Omit `--template` to run create-vite
 non-interactive scaffold.
 
 Apps land in `apps/`, libraries in `packages/` (each glob is registered as a workspace on first
-use). Options: `--dir <dir>` (override the target dir), `--scope @foo` (defaults to the root scope),
-`--template <t>`, `--install`, `--dry`.
+use). Names are scoped `@package/<name>` by default (or the root's scope; override with `--scope`).
+Options: `--dir <dir>` (override the target dir), `--scope @foo`, `--template <t>`, `--install`,
+`--dry`.
+
+### Wiring a lib into an app
+
+Types work through the alias, but the runtime and the build graph need a real dependency. `nestkit
+add` does it in one step:
+
+```bash
+nestkit add bird --to api    # adds "@package/bird": "*" to apps/api, installs, syncs aliases
+```
+
+Then `import { BirdModule } from '@package/bird'` and add it to your module's `imports`.
 
 ## Example
 

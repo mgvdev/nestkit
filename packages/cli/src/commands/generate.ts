@@ -46,11 +46,13 @@ function createViteCmd(pm: string, target: string, template?: string): string[] 
     : [...base, '--template', template]
 }
 
-/** Derive the package name, reusing the root scope unless one is given. */
+const normalizeScope = (s: string) => (s.startsWith('@') ? s : `@${s}`)
+
+/** Derive the package name: explicit scope > root scope > default `@package`. */
 function resolveName(root: string, name: string, scope?: string): string {
   if (name.startsWith('@')) return name
-  const s = scope ?? rootScope(root)
-  return s ? `${s}/${name}` : name
+  const s = normalizeScope(scope ?? rootScope(root) ?? '@package')
+  return `${s}/${name}`
 }
 
 function rootScope(root: string): string | null {
