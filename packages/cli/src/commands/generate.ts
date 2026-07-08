@@ -25,18 +25,24 @@ const INSTALL_CMD: Record<string, string[]> = {
   bun: ['bun', 'install'],
 }
 
-/** Build the package-manager-native `create vite` command for a target dir. */
-function createViteCmd(pm: string, target: string, template: string): string[] {
-  switch (pm) {
-    case 'pnpm':
-      return ['pnpm', 'create', 'vite', target, '--template', template]
-    case 'yarn':
-      return ['yarn', 'create', 'vite', target, '--template', template]
-    case 'bun':
-      return ['bun', 'create', 'vite', target, '--template', template]
-    default:
-      return ['npm', 'create', 'vite@latest', target, '--', '--template', template]
-  }
+/**
+ * Build the package-manager-native `create vite` command for a target dir.
+ * Without a template, create-vite runs interactively (prompts for framework + variant).
+ */
+function createViteCmd(pm: string, target: string, template?: string): string[] {
+  const base =
+    pm === 'pnpm'
+      ? ['pnpm', 'create', 'vite', target]
+      : pm === 'yarn'
+        ? ['yarn', 'create', 'vite', target]
+        : pm === 'bun'
+          ? ['bun', 'create', 'vite', target]
+          : ['npm', 'create', 'vite@latest', target]
+  if (!template) return base
+  // npm needs `--` to forward flags to create-vite.
+  return pm === 'npm' || pm === undefined
+    ? [...base, '--', '--template', template]
+    : [...base, '--template', template]
 }
 
 /** Derive the package name, reusing the root scope unless one is given. */
@@ -82,7 +88,7 @@ export const generateCommand = defineCommand({
     scope: { type: 'string', description: 'npm scope, e.g. @app (defaults to the root scope).' },
     template: {
       type: 'string',
-      description: 'create-vite template for app-frontend (default: vanilla-ts).',
+      description: 'create-vite template for app-frontend; omit for interactive prompts.',
     },
     install: { type: 'boolean', description: 'Run the package manager install afterwards.' },
     dry: { type: 'boolean', description: 'Preview without writing.' },
@@ -113,9 +119,10 @@ export const generateCommand = defineCommand({
 
     if (kind === 'app-frontend') {
       // Delegate scaffolding to Vite's official initializer, then wire it into the monorepo.
-      const template = args.template ?? 'vanilla-ts'
-      const cmd = createViteCmd(pm, targetRel, template)
-      logger.info(`Scaffolding Vite app ${c.bold(bareName)} in ${c.dim(targetRel)}`)
+      // No --template => create-vite prompts interactively for framework + variant.
+      const cmd = createViteCmd(pm, targetRel, args.template)
+      const mode = args.template ? `template ${c.cyan(args.template)}` : c.cyan('interactive')
+      logger.info(`Scaffolding Vite app ${c.bold(bareName)} in ${c.dim(targetRel)} (${mode})`)
       logger.log(`  ${c.dim('$')} ${cmd.join(' ')}`)
       if (args.dry) {
         logger.info(

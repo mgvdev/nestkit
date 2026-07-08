@@ -85,8 +85,9 @@ nestkit g app api --install       # also runs the package manager install
 
 `app` and `lib` use built-in templates. **`app-frontend` delegates to Vite's official initializer**
 (`npm/pnpm/yarn/bun create vite`) and then adds `nestkit.json` and registers the workspace — so you
-get the real Vite scaffold, no custom fork. Pick the Vite template with `--template` (default
-`vanilla-ts`, e.g. `react-ts`, `vue-ts`, `svelte-ts`).
+get the real Vite scaffold, no custom fork. Omit `--template` to run create-vite **interactively**
+(it prompts for framework + variant); pass `--template react-ts` (or `vue-ts`, `svelte-ts`, …) for a
+non-interactive scaffold.
 
 Apps land in `apps/`, libraries in `packages/` (each glob is registered as a workspace on first
 use). Options: `--dir <dir>` (override the target dir), `--scope @foo` (defaults to the root scope),
