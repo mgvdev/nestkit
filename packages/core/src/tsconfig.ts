@@ -8,9 +8,48 @@ function relPosix(root: string, target: string): string {
   return relative(root, target).split('\\').join('/')
 }
 
+/** Parse JSON with comments and trailing commas (tsconfig files often use both). */
+function parseJsonc(text: string): unknown {
+  let out = ''
+  let inStr = false
+  let strCh = ''
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]!
+    const nx = text[i + 1]
+    if (inStr) {
+      out += ch
+      if (ch === '\\') {
+        out += nx ?? ''
+        i++
+      } else if (ch === strCh) {
+        inStr = false
+      }
+      continue
+    }
+    if (ch === '"' || ch === "'") {
+      inStr = true
+      strCh = ch
+      out += ch
+      continue
+    }
+    if (ch === '/' && nx === '/') {
+      while (i < text.length && text[i] !== '\n') i++
+      continue
+    }
+    if (ch === '/' && nx === '*') {
+      i += 2
+      while (i < text.length && !(text[i] === '*' && text[i + 1] === '/')) i++
+      i++
+      continue
+    }
+    out += ch
+  }
+  return JSON.parse(out.replace(/,(\s*[}\]])/g, '$1'))
+}
+
 function readJsonLoose<T>(file: string): T | null {
   try {
-    return JSON.parse(readFileSync(file, 'utf8')) as T
+    return parseJsonc(readFileSync(file, 'utf8')) as T
   } catch {
     return null
   }

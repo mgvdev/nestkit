@@ -66,6 +66,23 @@ describe('syncTsconfigPaths', () => {
     expect(api.extends).toBe('./custom.json')
   })
 
+  it('parses JSONC (comments + trailing commas) and still strips rootDir', () => {
+    write(
+      'apps/api/tsconfig.json',
+      `{
+  // app config
+  "compilerOptions": {
+    "strict": true,
+    "rootDir": "src", /* build root */
+  },
+}`,
+    )
+    syncTsconfigPaths(root)
+    const api = JSON.parse(readFileSync(join(root, 'apps/api/tsconfig.json'), 'utf8'))
+    expect(api.compilerOptions.rootDir).toBeUndefined()
+    expect(api.extends).toBe('../../tsconfig.base.json')
+  })
+
   it('does not override an existing extends', () => {
     write('apps/api/tsconfig.json', JSON.stringify({ extends: './custom.json' }))
     const res = syncTsconfigPaths(root)
