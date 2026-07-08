@@ -44,6 +44,18 @@ Run `nestkit sync` (it regenerates the aliases and drops renamed/removed librari
 TS server. The `paths` in `tsconfig.base.json` are managed by nestkit — don't hand-edit them; put
 custom paths in a different tsconfig.
 
+## "needs the classic TypeScript compiler API (TypeScript 5.x)"
+
+`nestkit typecheck` and library `.d.ts` generation use TypeScript's classic compiler API, which
+TypeScript **7.x** (the native port) no longer exposes the same way. Install `typescript@^5` as a
+devDependency:
+
+```bash
+npm i -D typescript@^5
+```
+
+SWC-based transforms, `graph`, `dev`, and `build` for apps don't need TypeScript and work regardless.
+
 ## `moduleResolution: "Node"` is deprecated
 
 Use `NodeNext` (generated tsconfigs already do). It matches the CommonJS runtime, allows extension-less

@@ -8,27 +8,48 @@ import type {
   TypeChecker,
   TypecheckResult,
 } from '@mgvdev/nestkit-core'
-import ts from 'typescript'
+import type TS from 'typescript'
 
-const formatHost: ts.FormatDiagnosticsHost = {
-  getCanonicalFileName: (f) => f,
-  getCurrentDirectory: ts.sys.getCurrentDirectory,
-  getNewLine: () => ts.sys.newLine,
+/**
+ * Lazily load TypeScript's classic compiler API. Imported on demand (not at
+ * module load) so `graph` / `dev` / SWC builds don't require TypeScript, and so
+ * an incompatible TypeScript fails with a clear message instead of a cryptic
+ * `Cannot read properties of undefined` at import time.
+ */
+async function loadTs(): Promise<typeof TS> {
+  const mod = (await import('typescript')) as unknown as { default?: typeof TS } & typeof TS
+  const ts = mod.default ?? mod
+  if (!ts?.sys || typeof ts.createProgram !== 'function') {
+    throw new Error(
+      'nestkit typecheck / .d.ts generation needs the classic TypeScript compiler API ' +
+        '(TypeScript 5.x). The resolved "typescript" is incompatible (e.g. 7.x). ' +
+        'Install typescript@^5 as a devDependency.',
+    )
+  }
+  return ts
+}
+
+function makeFormatHost(ts: typeof TS): TS.FormatDiagnosticsHost {
+  return {
+    getCanonicalFileName: (f) => f,
+    getCurrentDirectory: ts.sys.getCurrentDirectory,
+    getNewLine: () => ts.sys.newLine,
+  }
 }
 
 /** Parse a tsconfig.json into compiler options + root file names. */
-function parseTsconfig(configPath: string): ts.ParsedCommandLine {
+function parseTsconfig(ts: typeof TS, configPath: string): TS.ParsedCommandLine {
   const parsed = ts.getParsedCommandLineOfConfigFile(configPath, {}, {
     ...ts.sys,
     onUnRecoverableConfigFileDiagnostic: (d) => {
-      throw new Error(ts.formatDiagnostic(d, formatHost))
+      throw new Error(ts.formatDiagnostic(d, makeFormatHost(ts)))
     },
-  } as ts.ParseConfigFileHost)
+  } as TS.ParseConfigFileHost)
   if (!parsed) throw new Error(`Could not read tsconfig at ${configPath}`)
   return parsed
 }
 
-function toNkDiagnostic(d: ts.Diagnostic): NkDiagnostic {
+function toNkDiagnostic(ts: typeof TS, d: TS.Diagnostic): NkDiagnostic {
   const message = ts.flattenDiagnosticMessageText(d.messageText, '\n')
   if (d.file && d.start !== undefined) {
     const { line } = d.file.getLineAndCharacterOfPosition(d.start)
@@ -40,8 +61,9 @@ function toNkDiagnostic(d: ts.Diagnostic): NkDiagnostic {
 /** Emits declaration files for a library via the TypeScript compiler API. */
 export class TscDtsBuilder implements DtsBuilder {
   async emitDts(project: Project): Promise<void> {
-    const parsed = parseTsconfig(project.tsconfig)
-    const options: ts.CompilerOptions = {
+    const ts = await loadTs()
+    const parsed = parseTsconfig(ts, project.tsconfig)
+    const options: TS.CompilerOptions = {
       ...parsed.options,
       declaration: true,
       declarationMap: true,
@@ -58,7 +80,7 @@ export class TscDtsBuilder implements DtsBuilder {
     const errors = diagnostics.filter((d) => d.category === ts.DiagnosticCategory.Error)
     if (errors.length > 0) {
       throw new Error(
-        `dts generation failed for ${project.name}:\n${ts.formatDiagnosticsWithColorAndContext(errors, formatHost)}`,
+        `dts generation failed for ${project.name}:\n${ts.formatDiagnosticsWithColorAndContext(errors, makeFormatHost(ts))}`,
       )
     }
   }
@@ -67,17 +89,19 @@ export class TscDtsBuilder implements DtsBuilder {
 /** Type-checks projects with --noEmit semantics via the TypeScript compiler API. */
 export class TscTypeChecker implements TypeChecker {
   async check(projects: Project[]): Promise<TypecheckResult> {
-    const all: ts.Diagnostic[] = []
+    const ts = await loadTs()
+    const all: TS.Diagnostic[] = []
     for (const project of projects) {
-      const parsed = parseTsconfig(project.tsconfig)
-      const options: ts.CompilerOptions = { ...parsed.options, noEmit: true, incremental: false }
+      const parsed = parseTsconfig(ts, project.tsconfig)
+      const options: TS.CompilerOptions = { ...parsed.options, noEmit: true, incremental: false }
       const program = ts.createProgram(parsed.fileNames, options)
       all.push(...ts.getPreEmitDiagnostics(program))
     }
     const errors = all.filter((d) => d.category === ts.DiagnosticCategory.Error)
+    const formatHost = makeFormatHost(ts)
     return {
       ok: errors.length === 0,
-      diagnostics: errors.map(toNkDiagnostic),
+      diagnostics: errors.map((d) => toNkDiagnostic(ts, d)),
       output: errors.length > 0 ? ts.formatDiagnosticsWithColorAndContext(errors, formatHost) : '',
     }
   }
@@ -90,8 +114,9 @@ export class TscCompiler implements CompilerAdapter {
   async build(ctx: BuildContext): Promise<BuildResult> {
     const start = performance.now()
     const { project } = ctx
-    const parsed = parseTsconfig(project.tsconfig)
-    const options: ts.CompilerOptions = {
+    const ts = await loadTs()
+    const parsed = parseTsconfig(ts, project.tsconfig)
+    const options: TS.CompilerOptions = {
       ...parsed.options,
       outDir: project.outDir,
       rootDir: project.sourceDir,
@@ -111,7 +136,7 @@ export class TscCompiler implements CompilerAdapter {
       .filter((d) => d.category === ts.DiagnosticCategory.Error)
     if (errors.length > 0) {
       throw new Error(
-        `tsc build failed for ${project.name}:\n${ts.formatDiagnosticsWithColorAndContext(errors, formatHost)}`,
+        `tsc build failed for ${project.name}:\n${ts.formatDiagnosticsWithColorAndContext(errors, makeFormatHost(ts))}`,
       )
     }
     return {

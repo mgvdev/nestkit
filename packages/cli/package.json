@@ -1,6 +1,6 @@
 {
   "name": "@mgvdev/nestkit-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "nestkit CLI — modern, package-manager-agnostic NestJS workspace engine.",
   "type": "module",
   "license": "MIT",
@@ -22,15 +22,15 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@mgvdev/nestkit-adapter-vite": "^0.1.0",
-    "@mgvdev/nestkit-compiler-swc": "^0.1.0",
-    "@mgvdev/nestkit-compiler-tsc": "^0.1.0",
-    "@mgvdev/nestkit-core": "^0.1.0",
+    "@mgvdev/nestkit-adapter-vite": "^0.1.1",
+    "@mgvdev/nestkit-compiler-swc": "^0.1.1",
+    "@mgvdev/nestkit-compiler-tsc": "^0.1.1",
+    "@mgvdev/nestkit-core": "^0.1.1",
     "citty": "^0.1.6",
     "consola": "^3.2.3"
   },
   "peerDependencies": {
-    "typescript": ">=5.0.0"
+    "typescript": "^5.0.0"
   },
   "publishConfig": {
     "access": "public"
