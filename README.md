@@ -48,6 +48,7 @@ Each managed package carries a **`nestkit.json`** descriptor:
 
 ```bash
 nestkit init [--dry]             # scaffold nestkit.json for detected packages (writes; --dry to preview)
+nestkit generate <kind> <name>   # scaffold a new app | lib | app-frontend package (alias: g, new)
 nestkit graph [--json]           # print the project graph and build order
 nestkit build <project>          # build a project and its local-dep closure
 nestkit build --all              # build every managed project
@@ -69,6 +70,21 @@ package directory name.
 | `@nestkit/compiler-swc` | Default SWC transform (decorator metadata enabled for Nest DI) |
 | `@nestkit/compiler-tsc` | `tsc` typecheck + `.d.ts` generation (and an optional tsc transform) |
 | `@nestkit/adapter-vite` | First-class Vite adapter for frontend apps |
+
+### Scaffolding
+
+`generate` writes a ready-to-run package from built-in templates (no `@nestjs/cli` needed) and
+registers the workspace glob if missing:
+
+```bash
+nestkit generate app api          # packages/api — Nest HTTP app
+nestkit generate lib utils        # packages/utils — injectable library
+nestkit generate app-frontend web # packages/web — Vite app
+nestkit g app api --install       # also runs the package manager install
+```
+
+Options: `--dir <dir>` (default `packages`), `--scope @foo` (defaults to the root scope),
+`--install`, `--dry`.
 
 ## Example
 

@@ -3,6 +3,7 @@ import { defineCommand, runMain } from 'citty'
 import { buildCommand } from './commands/build.js'
 import { cleanCommand } from './commands/clean.js'
 import { devCommand } from './commands/dev.js'
+import { generateCommand } from './commands/generate.js'
 import { graphCommand } from './commands/graph.js'
 import { initCommand } from './commands/init.js'
 import { migrateCommand } from './commands/migrate.js'
@@ -16,6 +17,9 @@ const main = defineCommand({
   },
   subCommands: {
     init: initCommand,
+    generate: generateCommand,
+    g: generateCommand,
+    new: generateCommand,
     graph: graphCommand,
     build: buildCommand,
     dev: devCommand,

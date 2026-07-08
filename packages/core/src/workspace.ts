@@ -1,7 +1,7 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { globSync } from 'tinyglobby'
-import { parse as parseYaml } from 'yaml'
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 import { loadProjectConfig } from './config.js'
 import type { PackageJson, PackageManager, Workspace, WorkspacePackage } from './types.js'
 
@@ -45,6 +45,43 @@ export function readWorkspaceGlobs(root: string, pm: PackageManager): string[] {
     }
   }
   return normalizeWorkspacesField(rootPkg)
+}
+
+/**
+ * Ensure a workspace glob (e.g. `packages/*`) is declared for the detected PM.
+ * pnpm → pnpm-workspace.yaml; npm/yarn/bun → package.json#workspaces.
+ * Returns true when a change was written.
+ */
+export function ensureWorkspaceGlob(root: string, glob: string): boolean {
+  const pm = detectPackageManager(root)
+
+  if (pm === 'pnpm') {
+    const file = join(root, 'pnpm-workspace.yaml')
+    const doc = (existsSync(file) ? parseYaml(readFileSync(file, 'utf8')) : null) ?? {}
+    const parsed =
+      typeof doc === 'object' && !Array.isArray(doc) ? (doc as Record<string, unknown>) : {}
+    const pkgs = Array.isArray(parsed.packages) ? (parsed.packages as string[]) : []
+    if (pkgs.includes(glob)) return false
+    parsed.packages = [...pkgs, glob]
+    writeFileSync(file, stringifyYaml(parsed))
+    return true
+  }
+
+  const pkgPath = join(root, 'package.json')
+  const existed = existsSync(pkgPath)
+  const pkg = (
+    existed ? (JSON.parse(readFileSync(pkgPath, 'utf8')) as PackageJson) : {}
+  ) as PackageJson
+  const current = normalizeWorkspacesField(pkg)
+  if (current.includes(glob)) return false
+  if (pkg.workspaces && !Array.isArray(pkg.workspaces)) {
+    pkg.workspaces = { ...pkg.workspaces, packages: [...current, glob] }
+  } else {
+    pkg.workspaces = [...current, glob]
+  }
+  if (!existed) pkg.name ??= 'workspace'
+  writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`)
+  return true
 }
 
 /** Discover every workspace package that has a package.json with a name. */
