@@ -79,13 +79,24 @@ bootstrap()
 }
 
 /** Convert a package name into a PascalCase base (`@app/user-profile` -> `UserProfile`). */
-function pascalCase(name: string): string {
+export function pascalCase(name: string): string {
   const base = name.split('/').pop() ?? name
   return base
     .split(/[^a-zA-Z0-9]+/)
     .filter(Boolean)
     .map((w) => w[0]!.toUpperCase() + w.slice(1))
     .join('')
+}
+
+/** Convert a name into a kebab-case slug (`UserProfile` / `user profile` -> `user-profile`). */
+export function kebabCase(name: string): string {
+  const base = name.split('/').pop() ?? name
+  return base
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .join('-')
+    .toLowerCase()
 }
 
 function libFiles(name: string): FileMap {

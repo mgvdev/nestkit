@@ -18,6 +18,18 @@ Scaffold a new package.
 Options: `--dir <dir>` (override target dir), `--scope @foo` (default `@package`, or the root scope),
 `--template <t>` (create-vite template; omit for interactive prompts), `--install`, `--dry`.
 
+**Nest building blocks** — inside an existing app/lib (requires `--in <project>`):
+`module`, `service`, `controller`, `resource` (module+service+controller), `guard`, `pipe`,
+`interceptor`, `filter`, `middleware`, `decorator`.
+
+```bash
+nestkit g service billing --in api   # apps/api/src/billing/billing.service.ts + registered in app.module
+nestkit g resource user --in api     # full CRUD module, imported into app.module
+```
+
+Files go in a folder named after the block (or `src` with `--flat`); `service`/`controller`/`module`/
+`resource` are auto-registered in the app's `app.module.ts` (`providers`/`controllers`/`imports`).
+
 ## `nestkit add <lib> --to <app>`
 Add a local library as a dependency of an app: writes `"<lib>": "*"` into the app's `package.json`,
 runs install, and re-syncs tsconfig aliases. `--no-install` skips the install.

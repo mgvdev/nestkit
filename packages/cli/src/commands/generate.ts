@@ -1,16 +1,24 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import {
   type ProjectType,
   c,
   detectPackageManager,
   ensureWorkspaceGlob,
+  loadWorkspaceGraph,
   logger,
+  resolveProjectName,
   syncTsconfigPaths,
 } from '@mgvdev/nestkit-core'
 import { defineCommand } from 'citty'
-import { type FileMap, templateFor } from '../templates.js'
+import {
+  type SchematicKind,
+  buildSchematic,
+  isSchematicKind,
+  registerInModule,
+} from '../schematics.js'
+import { type FileMap, kebabCase, templateFor } from '../templates.js'
 
 const KINDS: Record<string, ProjectType> = {
   app: 'app',
@@ -76,14 +84,97 @@ function writeFiles(files: FileMap, targetDir: string, targetRel: string): void 
 
 const NESTKIT_FRONTEND = `${JSON.stringify({ type: 'app-frontend', adapter: 'vite' }, null, 2)}\n`
 
+/** Find the module to register a block in: app.module.ts, else the first *.module.ts. */
+function findModuleFile(sourceDir: string): string | null {
+  const appModule = join(sourceDir, 'app.module.ts')
+  if (existsSync(appModule)) return appModule
+  return null
+}
+
+/** Handle `generate <module|service|controller|resource|...> <name> --in <project>`. */
+function generateBlock(kind: SchematicKind, args: Record<string, any>): void {
+  const root = process.cwd()
+  const target = args.in
+  if (!target) {
+    logger.error(`generate ${kind} needs a target app/lib: use --in <project>.`)
+    process.exitCode = 1
+    return
+  }
+
+  const { graph } = loadWorkspaceGraph(root)
+  let project: ReturnType<typeof graph.nodes.get>
+  try {
+    project = graph.nodes.get(resolveProjectName(graph, target))
+  } catch (err) {
+    logger.error((err as Error).message)
+    process.exitCode = 1
+    return
+  }
+  if (!project?.managed) {
+    logger.error(`Project "${target}" has no nestkit.json.`)
+    process.exitCode = 1
+    return
+  }
+
+  const slug = kebabCase(args.name)
+  const schematic = buildSchematic(kind, args.name)
+  const baseDir = args.flat ? project.sourceDir : join(project.sourceDir, slug)
+
+  logger.info(
+    `Generating ${c.cyan(kind)} ${c.bold(args.name)} in ${c.dim(relative(root, baseDir))}`,
+  )
+  for (const [rel, content] of Object.entries(schematic.files)) {
+    const dest = join(baseDir, rel)
+    logger.log(`  ${c.green('+')} ${relative(root, dest)}`)
+    if (!args.dry) {
+      mkdirSync(dirname(dest), { recursive: true })
+      writeFileSync(dest, content)
+    }
+  }
+
+  // Register in the nearest module.
+  if (schematic.wire) {
+    const moduleFilePath = findModuleFile(project.sourceDir)
+    if (moduleFilePath && !args.dry) {
+      const importSpecifier = `./${relative(dirname(moduleFilePath), join(baseDir, schematic.wire.file)).split('\\').join('/')}`
+      const patched = registerInModule(readFileSync(moduleFilePath, 'utf8'), {
+        className: schematic.wire.className,
+        importSpecifier,
+        key: schematic.wire.key,
+      })
+      if (patched) {
+        writeFileSync(moduleFilePath, patched)
+        logger.info(
+          `Registered ${c.bold(schematic.wire.className)} in ${relative(root, moduleFilePath)}`,
+        )
+      } else {
+        logger.warn(
+          `Add ${schematic.wire.className} to your module's ${schematic.wire.key} manually.`,
+        )
+      }
+    } else if (!moduleFilePath) {
+      logger.warn(`No app.module.ts found — add ${schematic.wire.className} to a module manually.`)
+    }
+  }
+  if (schematic.hint) logger.info(schematic.hint)
+  if (args.dry) logger.info('Dry run. Re-run without --dry to write these files.')
+}
+
 export const generateCommand = defineCommand({
   meta: {
     name: 'generate',
-    description: 'Scaffold a new app, lib or app-frontend package (writes; --dry to preview).',
+    description:
+      'Scaffold a package (app|lib|app-frontend) or a Nest block (module|service|controller|resource|…).',
   },
   args: {
-    kind: { type: 'positional', required: true, description: 'app | lib | app-frontend' },
-    name: { type: 'positional', required: true, description: 'Package name (bare or scoped).' },
+    kind: {
+      type: 'positional',
+      required: true,
+      description: 'app|lib|app-frontend or module|service|controller|resource|guard|pipe|…',
+    },
+    name: { type: 'positional', required: true, description: 'Package or block name.' },
+    in: { type: 'string', description: 'Target project for a Nest block (module/service/…).' },
+    flat: { type: 'boolean', description: 'Place block files directly in src (no subfolder).' },
     dir: {
       type: 'string',
       description: 'Workspace dir (default: apps/ for apps, packages/ for libs).',
@@ -97,6 +188,12 @@ export const generateCommand = defineCommand({
     dry: { type: 'boolean', description: 'Preview without writing.' },
   },
   run({ args }) {
+    // Nest building blocks (module/service/controller/resource/...) go into an existing project.
+    if (isSchematicKind(args.kind)) {
+      generateBlock(args.kind, args)
+      return
+    }
+
     const kind = KINDS[args.kind]
     if (!kind) {
       logger.error(`Unknown kind "${args.kind}". Use: app | lib | app-frontend.`)
