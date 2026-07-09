@@ -1,5 +1,5 @@
 {
-  "name": "create-nestkit",
+  "name": "@mgvdev/create-nestkit",
   "version": "0.1.0",
   "description": "Scaffold a modern NestJS monorepo powered by nestkit (npm create nestkit).",
   "type": "module",

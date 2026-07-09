@@ -10,14 +10,14 @@
 Scaffold a whole workspace in one command (npm / pnpm / yarn / bun):
 
 ```bash
-npm create nestkit my-app
+npm create @mgvdev/nestkit my-app
 cd my-app
 npx nestkit dev api
 ```
 
 It prompts for an app name, an optional shared library and Vite frontend, and offers to add packages
 from the [mgvdev ecosystem](https://nestjs.mgvdev.io) (`@mgvdev/nest-boost`, `@mgvdev/nestjs-ai`).
-Non-interactive: `npm create nestkit my-app -- --yes --lib --with nestjs-ai`.
+Non-interactive: `npm create @mgvdev/nestkit my-app -- --yes --lib --with nestjs-ai`.
 
 ## Install (manual)
 

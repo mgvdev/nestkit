@@ -19,7 +19,7 @@ ordering, dev/watch, typecheck and declaration output.
 ## Quick start
 
 ```bash
-npm create nestkit my-app   # scaffolds the workspace, installs Nest, offers ecosystem packages
+npm create @mgvdev/nestkit my-app   # scaffolds the workspace, installs Nest, offers ecosystem packages
 cd my-app && npx nestkit dev api
 ```
 
