@@ -38,6 +38,9 @@ export function validateProjectConfig(raw: unknown, file: string): NestkitProjec
       throw new ConfigError('"assets" must be an array of strings', file)
     }
   }
+  if (o.devPort !== undefined && (typeof o.devPort !== 'number' || !Number.isInteger(o.devPort))) {
+    throw new ConfigError('"devPort" must be an integer', file)
+  }
   return o as unknown as NestkitProjectConfig
 }
 

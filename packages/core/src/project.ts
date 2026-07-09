@@ -48,6 +48,7 @@ export function resolveProject(pkg: WorkspacePackage, localNames: Set<string>): 
     entryOut,
     adapter: type === 'app-frontend' ? (cfg?.adapter ?? 'vite') : null,
     assets: cfg?.assets ?? [],
+    devPort: cfg?.devPort ?? null,
     tsconfig: join(pkg.dir, cfg?.tsconfig ?? 'tsconfig.json'),
     packageJson: pkg.packageJson,
     localDeps,

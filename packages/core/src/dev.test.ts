@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveDevTargets } from './dev.js'
+import { devPortFor, resolveDevTargets } from './dev.js'
 import { buildGraph } from './graph.js'
 import type { Project, ProjectType } from './types.js'
 
@@ -16,6 +16,7 @@ function proj(name: string, type: ProjectType | null, localDeps: string[] = []):
     entryOut: type === 'app' ? `/ws/${name}/dist/main.js` : null,
     adapter: type === 'app-frontend' ? 'vite' : null,
     assets: [],
+    devPort: null,
     tsconfig: `/ws/${name}/tsconfig.json`,
     packageJson: { name },
     localDeps,
@@ -54,5 +55,19 @@ describe('resolveDevTargets', () => {
 
   it('throws when nothing is selected', () => {
     expect(() => resolveDevTargets(graph, {})).toThrow(/No dev targets/)
+  })
+})
+
+describe('devPortFor', () => {
+  it('auto-assigns base + index when no devPort', () => {
+    const api = proj('@app/api', 'app')
+    expect(devPortFor(api, 0)).toBe(3000)
+    expect(devPortFor(api, 2)).toBe(3002)
+    expect(devPortFor(api, 1, 4000)).toBe(4001)
+  })
+
+  it('uses a fixed devPort when set', () => {
+    const api = { ...proj('@app/api', 'app'), devPort: 8080 }
+    expect(devPortFor(api, 3)).toBe(8080)
   })
 })

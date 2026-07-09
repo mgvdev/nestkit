@@ -27,6 +27,7 @@ without one is visible to the graph but not compiled by nestkit.
 | `sourceDir` | app, lib | `src` | Source root. |
 | `adapter` | app-frontend | `vite` | Frontend adapter name. |
 | `assets` | app, lib | `[]` | Glob patterns copied verbatim into `outDir`. |
+| `devPort` | app | auto | Fixed `PORT` for `nestkit dev`; otherwise auto-assigned (base + index). |
 | `tsconfig` | all | `tsconfig.json` | Used for typecheck and `.d.ts`. |
 
 ## Project types

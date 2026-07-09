@@ -25,6 +25,8 @@ export interface NestkitProjectConfig {
   assets?: string[]
   /** tsconfig file, relative to the package dir. Default `tsconfig.json`. */
   tsconfig?: string
+  /** Fixed port for `nestkit dev` (apps). Otherwise auto-assigned from a base. */
+  devPort?: number
 }
 
 /** A raw package.json (only the fields nestkit reads). */
@@ -78,6 +80,8 @@ export interface Project {
   entryOut: string | null
   adapter: string | null
   assets: string[]
+  /** Fixed dev port for apps, or null to auto-assign. */
+  devPort: number | null
   /** Absolute tsconfig path. */
   tsconfig: string
   packageJson: PackageJson

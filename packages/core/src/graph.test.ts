@@ -15,6 +15,7 @@ function proj(name: string, localDeps: string[] = []): Project {
     entryOut: null,
     adapter: null,
     assets: [],
+    devPort: null,
     tsconfig: `/ws/${name}/tsconfig.json`,
     packageJson: { name },
     localDeps,

@@ -20,6 +20,12 @@ export interface DevOptions {
   typecheck?: boolean
   /** Use the split-panes TUI (falls back to prefixed lines off a TTY). */
   tui?: boolean
+  /** Base port for apps without an explicit devPort (default 3000). */
+  portBase?: number
+  /** Start apps with the Node inspector attached. */
+  inspect?: boolean
+  /** Start apps with the inspector attached and paused before user code. */
+  inspectBrk?: boolean
 }
 
 export interface DevController {
@@ -35,6 +41,11 @@ function debounce(fn: () => void, delayMs: number): () => void {
 }
 
 const isRunnable = (p: Project) => p.type === 'app' || p.type === 'app-frontend'
+
+/** Resolve an app's dev port: its fixed `devPort`, else base + its index. */
+export function devPortFor(target: Project, index: number, portBase = 3000): number {
+  return target.devPort ?? portBase + index
+}
 
 /**
  * Resolve the runnable dev targets from a request. `all` selects every managed
@@ -121,11 +132,11 @@ export async function dev(opts: DevOptions): Promise<DevController> {
   }
 
   const runners = new Map<string, Runner>()
-  for (const r of runnables) {
-    const runner = createRunner(r, labelOf.get(r.name)!, opts, sink)
+  runnables.forEach((r, index) => {
+    const runner = createRunner(r, labelOf.get(r.name)!, opts, sink, index)
     runners.set(r.name, runner)
     runner.start()
-  }
+  })
 
   const rebuild = async (p: Project) => {
     const t0 = performance.now()
@@ -173,18 +184,35 @@ interface Runner {
 }
 
 /** Manages one runnable target's process (app child process or frontend dev server). */
-function createRunner(target: Project, label: string, opts: DevOptions, sink: OutputSink): Runner {
+function createRunner(
+  target: Project,
+  label: string,
+  opts: DevOptions,
+  sink: OutputSink,
+  index: number,
+): Runner {
   let child: ChildProcess | null = null
   let frontend: { close(): Promise<void> } | null = null
   let typechecking = false
 
+  // Distinct port and inspector port per app so `dev --all` doesn't collide.
+  const port = devPortFor(target, index, opts.portBase)
+  const inspectPort = 9229 + index
+
   const startApp = () => {
     if (!target.entryOut) throw new Error(`App "${target.name}" has no entry output`)
-    child = spawn(process.execPath, [target.entryOut], {
+    const nodeArgs: string[] = []
+    if (opts.inspectBrk) nodeArgs.push(`--inspect-brk=${inspectPort}`)
+    else if (opts.inspect) nodeArgs.push(`--inspect=${inspectPort}`)
+    nodeArgs.push(target.entryOut)
+
+    child = spawn(process.execPath, nodeArgs, {
       cwd: target.dir,
       stdio: ['inherit', 'pipe', 'pipe'],
-      env: process.env,
+      env: { ...process.env, PORT: String(port) },
     })
+    const inspectNote = opts.inspect || opts.inspectBrk ? `  inspect :${inspectPort}` : ''
+    sink.note(label, `starting on port ${port}${inspectNote}`)
     child.stdout?.on('data', (d: Buffer) => sink.write(label, 'out', d.toString()))
     child.stderr?.on('data', (d: Buffer) => sink.write(label, 'err', d.toString()))
     child.on('exit', (code, signal) => {

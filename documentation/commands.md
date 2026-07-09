@@ -42,6 +42,10 @@ Run one or more projects in watch mode with rebuild + restart.
 - Editing a library rebuilds it and restarts only the dependent apps; a crashed process logs its exit
   and the others keep running (a file change restarts it).
 - `--tui` shows split panes (TTY only; falls back to prefixed lines when piped).
+- **Ports:** each app gets a distinct port — its `devPort` (from `nestkit.json`) or `--port-base`
+  (default 3000) plus its index — injected as `PORT`. So `dev --all` never collides.
+- **Debugging:** `--inspect` / `--inspect-brk` attach the Node inspector with a distinct port per app
+  (9229, 9230, …).
 - `--typecheck` (default true) runs typecheck out-of-band on changes.
 - Pointing `dev` at a library is an error.
 
