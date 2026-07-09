@@ -1,0 +1,16 @@
+{
+  "packages": [
+    {
+      "key": "nest-boost",
+      "npm": "@mgvdev/nest-boost",
+      "target": "root-dev",
+      "desc": "AI/MCP toolkit that teaches coding agents your Nest app"
+    },
+    {
+      "key": "nestjs-ai",
+      "npm": "@mgvdev/nestjs-ai",
+      "target": "app-dep",
+      "desc": "NestJS toolkit on Vercel AI SDK v7 (agents, tools, RAG, streaming)"
+    }
+  ]
+}

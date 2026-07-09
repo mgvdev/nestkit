@@ -19,6 +19,23 @@ It prompts for an app name, an optional shared library and Vite frontend, and of
 from the [mgvdev ecosystem](https://nestjs.mgvdev.io) (`@mgvdev/nest-boost`, `@mgvdev/nestjs-ai`).
 Non-interactive: `npm create @mgvdev/nestkit my-app -- --yes --lib --with nestjs-ai`.
 
+### Ecosystem manifest
+
+The offered packages come from a remote manifest at `https://nestjs.mgvdev.io/ecosystem.json`
+(falling back to a built-in list when it's unreachable). To add a package to the picker, host that
+JSON — no republish of the initializer needed. Schema (see
+[`documentation/ecosystem.json`](./ecosystem.json)):
+
+```json
+{
+  "packages": [
+    { "key": "nestjs-ai", "npm": "@mgvdev/nestjs-ai", "target": "app-dep", "desc": "…" }
+  ]
+}
+```
+
+`target` is `app-dep` (added to the app's dependencies) or `root-dev` (root devDependencies).
+
 ## Install (manual)
 
 ```bash

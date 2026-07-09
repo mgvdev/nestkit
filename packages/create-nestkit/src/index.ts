@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path'
 import { defineCommand, runMain } from 'citty'
 import { consola } from 'consola'
 import pc from 'picocolors'
-import { ECOSYSTEM, ecosystemByKeys } from './ecosystem.js'
+import { ecosystemByKeys, fetchEcosystem } from './ecosystem.js'
 import { type PackageManager, detectPackageManager, runLabel } from './pm.js'
 import {
   applyEcosystem,
@@ -75,17 +75,18 @@ const main = defineCommand({
         )
       : Boolean(args.frontend)
 
+    const catalog = await fetchEcosystem()
     let ecoKeys = args.with
       ? String(args.with)
           .split(',')
           .map((s) => s.trim())
           .filter(Boolean)
       : []
-    if (interactive) {
+    if (interactive && catalog.length > 0) {
       const selected = await consola.prompt('Add ecosystem packages?', {
         type: 'multiselect',
         required: false,
-        options: ECOSYSTEM.map((p) => ({ label: `${p.key} — ${p.desc}`, value: p.key })),
+        options: catalog.map((p) => ({ label: `${p.key} — ${p.desc}`, value: p.key })),
       })
       ecoKeys = Array.isArray(selected) ? (selected as unknown as string[]) : []
     }
@@ -126,7 +127,7 @@ const main = defineCommand({
       ])
     }
 
-    applyEcosystem(target, join(target, 'apps', appName), ecosystemByKeys(ecoKeys))
+    applyEcosystem(target, join(target, 'apps', appName), ecosystemByKeys(catalog, ecoKeys))
 
     if (doInstall) runInstall(pm, target)
     if (doGit) gitInit(target)
