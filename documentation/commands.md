@@ -18,6 +18,13 @@ Scaffold a new package.
 Options: `--dir <dir>` (override target dir), `--scope @foo` (default `@package`, or the root scope),
 `--template <t>` (create-vite template; omit for interactive prompts), `--install`, `--dry`.
 
+**App options** (`generate app`): `--adapter express|fastify` (default express), `--test
+jest|vitest|none` (default jest, wires the spec/e2e config + scripts), `--service`/`--no-service`
+(service + unit spec, default on), `--e2e`/`--no-e2e` (e2e suite, default on), `--config`
+(@nestjs/config + `.env`), `--validation` (class-validator + global ValidationPipe). Generated apps
+ship a Jest **or** Vitest setup (unit + e2e), an `AppService`, and the chosen HTTP adapter — close to
+`nest new`. `generate lib` takes `--test` too.
+
 **Nest building blocks** — inside an existing app/lib (requires `--in <project>`):
 `module`, `service`, `controller`, `resource` (module+service+controller), `guard`, `pipe`,
 `interceptor`, `filter`, `middleware`, `decorator`.

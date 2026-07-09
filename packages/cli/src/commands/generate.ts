@@ -18,7 +18,16 @@ import {
   isSchematicKind,
   registerInModule,
 } from '../schematics.js'
-import { type FileMap, kebabCase, templateFor } from '../templates.js'
+import {
+  type FileMap,
+  type TemplateOptions,
+  type TestRunner,
+  kebabCase,
+  templateFor,
+} from '../templates.js'
+
+const normalizeTest = (t: string): TestRunner =>
+  t === 'vitest' ? 'vitest' : t === 'none' ? 'none' : 'jest'
 
 const KINDS: Record<string, ProjectType> = {
   app: 'app',
@@ -184,6 +193,16 @@ export const generateCommand = defineCommand({
       type: 'string',
       description: 'create-vite template for app-frontend; omit for interactive prompts.',
     },
+    adapter: {
+      type: 'string',
+      default: 'express',
+      description: 'HTTP adapter for apps: express | fastify.',
+    },
+    test: { type: 'string', default: 'jest', description: 'Test runner: jest | vitest | none.' },
+    service: { type: 'boolean', default: true, description: 'App: include a service + unit spec.' },
+    e2e: { type: 'boolean', default: true, description: 'App: include an e2e test suite.' },
+    config: { type: 'boolean', description: 'App: include @nestjs/config + .env.' },
+    validation: { type: 'boolean', description: 'App: include class-validator + ValidationPipe.' },
     install: { type: 'boolean', description: 'Run the package manager install afterwards.' },
     dry: { type: 'boolean', description: 'Preview without writing.' },
   },
@@ -240,7 +259,18 @@ export const generateCommand = defineCommand({
       }
     } else {
       logger.info(`Generating ${c.cyan(kind)} ${c.bold(pkgName)} in ${c.dim(targetRel)}`)
-      const files = templateFor(kind, pkgName)
+      const templateOpts: TemplateOptions = {
+        app: {
+          adapter: args.adapter === 'fastify' ? 'fastify' : 'express',
+          test: normalizeTest(args.test),
+          service: args.service,
+          e2e: args.e2e,
+          config: Boolean(args.config),
+          validation: Boolean(args.validation),
+        },
+        lib: { test: normalizeTest(args.test) },
+      }
+      const files = templateFor(kind, pkgName, templateOpts)
       if (args.dry) {
         for (const rel of Object.keys(files))
           logger.log(`  ${c.green('+')} ${join(targetRel, rel)}`)

@@ -12,6 +12,20 @@ function readJson(file: string): any {
   return JSON.parse(readFileSync(file, 'utf8'))
 }
 
+/** Root `test` script that delegates to every workspace package's own test script. */
+function workspaceTestScript(pm: PackageManager): string {
+  switch (pm) {
+    case 'pnpm':
+      return 'pnpm -r test'
+    case 'yarn':
+      return 'yarn workspaces run test'
+    case 'bun':
+      return "bun run --filter '*' test"
+    default:
+      return 'npm run test --workspaces --if-present'
+  }
+}
+
 /** Create the target dir, erroring if it exists and is non-empty. */
 export function ensureEmptyDir(target: string): void {
   if (existsSync(target) && readdirSync(target).length > 0) {
@@ -33,7 +47,6 @@ export function writeRootFiles(target: string, opts: RootOptions): void {
   const devDependencies: Record<string, string> = {
     '@mgvdev/nestkit-cli': '^0.2.0',
     typescript: '>=5 <7',
-    vitest: '^2.1.8',
     ...linter.devDependencies,
   }
   if (opts.frontend) {
@@ -48,7 +61,7 @@ export function writeRootFiles(target: string, opts: RootOptions): void {
       build: 'nestkit build --all',
       dev: 'nestkit dev --all',
       typecheck: 'nestkit typecheck',
-      test: 'vitest run',
+      test: workspaceTestScript(opts.pm),
       lint: linter.scripts.lint,
       format: linter.scripts.format,
       clean: 'nestkit clean',

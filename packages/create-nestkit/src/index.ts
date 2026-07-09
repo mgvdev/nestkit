@@ -3,6 +3,14 @@ import { join, resolve } from 'node:path'
 import { defineCommand, runMain } from 'citty'
 import { consola } from 'consola'
 import pc from 'picocolors'
+import {
+  type AppChoices,
+  DEFAULT_APP_CHOICES,
+  EXTRAS,
+  type HttpAdapter,
+  type TestRunner,
+  generateAppArgs,
+} from './app-options.js'
 import { ecosystemByKeys, fetchEcosystem } from './ecosystem.js'
 import { LINTERS, type LinterChoice, isLinterChoice } from './linters.js'
 import { type PackageManager, detectPackageManager, runLabel } from './pm.js'
@@ -41,6 +49,16 @@ const main = defineCommand({
       default: 'biome',
       description: 'Linter/formatter: biome | eslint-prettier | oxlint-oxfmt.',
     },
+    test: { type: 'string', default: 'jest', description: 'Test runner: jest | vitest.' },
+    adapter: {
+      type: 'string',
+      default: 'express',
+      description: 'HTTP adapter: express | fastify.',
+    },
+    service: { type: 'boolean', default: true, description: 'App: service + unit spec.' },
+    e2e: { type: 'boolean', default: true, description: 'App: e2e tests.' },
+    config: { type: 'boolean', description: 'App: @nestjs/config + .env.' },
+    validation: { type: 'boolean', description: 'App: class-validator + ValidationPipe.' },
     with: {
       type: 'string',
       description: 'Comma-separated ecosystem packages (e.g. nest-boost,nestjs-ai).',
@@ -97,6 +115,48 @@ const main = defineCommand({
       if (typeof picked === 'string' && isLinterChoice(picked)) linter = picked
     }
 
+    // App options: test runner, HTTP adapter, extras.
+    const app: AppChoices = {
+      test: (args.test === 'vitest' ? 'vitest' : 'jest') as TestRunner,
+      adapter: (args.adapter === 'fastify' ? 'fastify' : 'express') as HttpAdapter,
+      service: args.service !== false,
+      e2e: args.e2e !== false,
+      config: Boolean(args.config),
+      validation: Boolean(args.validation),
+    }
+    if (interactive) {
+      app.test = (await consola.prompt('Test runner?', {
+        type: 'select',
+        initial: app.test,
+        options: [
+          { label: 'Jest (Nest default)', value: 'jest' },
+          { label: 'Vitest (light, ESM)', value: 'vitest' },
+        ],
+      })) as TestRunner
+      app.adapter = (await consola.prompt('HTTP adapter?', {
+        type: 'select',
+        initial: app.adapter,
+        options: [
+          { label: 'Express', value: 'express' },
+          { label: 'Fastify', value: 'fastify' },
+        ],
+      })) as HttpAdapter
+      const picked = await consola.prompt('Include in the app?', {
+        type: 'multiselect',
+        required: false,
+        options: EXTRAS.map((e) => ({
+          label: e.label,
+          value: e.key,
+          selected: DEFAULT_APP_CHOICES[e.key],
+        })),
+      })
+      const set = new Set(Array.isArray(picked) ? (picked as unknown as string[]) : [])
+      app.service = set.has('service')
+      app.e2e = set.has('e2e')
+      app.config = set.has('config')
+      app.validation = set.has('validation')
+    }
+
     const catalog = await fetchEcosystem()
     let ecoKeys = args.with
       ? String(args.with)
@@ -132,9 +192,9 @@ const main = defineCommand({
 
     // Install nestkit-cli first so its bin is available for scaffolding.
     runInstall(pm, target)
-    runNestkit(target, ['generate', 'app', appName, '--scope', args.scope])
+    runNestkit(target, generateAppArgs(appName, args.scope, app))
     if (withLib) {
-      runNestkit(target, ['generate', 'lib', 'shared', '--scope', args.scope])
+      runNestkit(target, ['generate', 'lib', 'shared', '--scope', args.scope, '--test', app.test])
       runNestkit(target, ['add', 'shared', '--to', appName, '--no-install'])
     }
     if (withFrontend) {

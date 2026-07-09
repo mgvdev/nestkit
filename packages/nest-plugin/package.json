@@ -1,6 +1,6 @@
 {
   "name": "@mgvdev/nestkit-nest-plugin",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Run NestJS CLI plugins (Swagger/GraphQL) under SWC by generating metadata at build.",
   "type": "module",
   "license": "MIT",
@@ -12,12 +12,14 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
-    "@mgvdev/nestkit-core": "^0.2.2"
+    "@mgvdev/nestkit-core": "^0.2.3"
   },
   "peerDependencies": {
     "@nestjs/cli": ">=10",
