@@ -1,6 +1,6 @@
 {
   "name": "@mgvdev/nestkit-compiler-swc",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "SWC transform adapter for nestkit (default compiler, no Webpack).",
   "type": "module",
   "license": "MIT",
@@ -12,12 +12,14 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
-    "@mgvdev/nestkit-core": "^0.1.2",
+    "@mgvdev/nestkit-core": "^0.2.0",
     "@swc/core": "^1.10.1",
     "tinyglobby": "^0.2.10"
   },
