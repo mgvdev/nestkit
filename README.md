@@ -16,6 +16,13 @@ ordering, dev/watch, typecheck and declaration output.
 - **Frontend included** — first-class Vite adapter for `app-frontend` projects.
 - **Extensible** — compiler / frontend / bundler adapters (bundling is opt-in, never the default).
 
+## Quick start
+
+```bash
+npm create nestkit my-app   # scaffolds the workspace, installs Nest, offers ecosystem packages
+cd my-app && npx nestkit dev api
+```
+
 ## Install
 
 ```bash

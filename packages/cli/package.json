@@ -9,14 +9,9 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": [
-    "dist",
-    "skills"
-  ],
+  "files": ["dist", "skills"],
   "nestBoost": {
-    "skills": [
-      "skills"
-    ]
+    "skills": ["skills"]
   },
   "engines": {
     "node": ">=20"

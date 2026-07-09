@@ -76,11 +76,12 @@ export function syncTsconfigPaths(root: string): SyncResult {
   const projects = resolveProjects(discoverWorkspace(root))
   const libs = projects.filter((p) => p.managed && p.type === 'lib')
 
+  // Path targets are relative (`./…`) so they resolve without `baseUrl` (TS5090).
   const paths: Record<string, string[]> = {}
   for (const lib of libs) {
     const index = join(lib.sourceDir, 'index.ts')
-    paths[lib.name] = [relPosix(root, index)]
-    paths[`${lib.name}/*`] = [`${relPosix(root, lib.sourceDir)}/*`]
+    paths[lib.name] = [`./${relPosix(root, index)}`]
+    paths[`${lib.name}/*`] = [`./${relPosix(root, lib.sourceDir)}/*`]
   }
 
   // Write tsconfig.base.json, preserving unrelated fields but fully regenerating
@@ -89,7 +90,9 @@ export function syncTsconfigPaths(root: string): SyncResult {
   const baseFile = join(root, 'tsconfig.base.json')
   const base = readJsonLoose<Record<string, any>>(baseFile) ?? {}
   base.compilerOptions ??= {}
-  base.compilerOptions.baseUrl = '.'
+  // No baseUrl: it's deprecated in TS 6+ (TS5101) and unnecessary — `paths` targets
+  // resolve relative to this config's location (the workspace root) since TS 4.1.
+  base.compilerOptions.baseUrl = undefined
   // rootDir at the workspace root keeps every package's src (and any lib src pulled
   // in via an alias) under a common root, so `declaration`/inferred-rootDir configs
   // don't trip TS6059. The dts/tsc compilers override rootDir per project at build.

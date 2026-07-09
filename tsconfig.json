@@ -6,6 +6,7 @@
     { "path": "packages/compiler-tsc" },
     { "path": "packages/adapter-vite" },
     { "path": "packages/nest-plugin" },
-    { "path": "packages/cli" }
+    { "path": "packages/cli" },
+    { "path": "packages/create-nestkit" }
   ]
 }
