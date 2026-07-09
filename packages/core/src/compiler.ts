@@ -63,6 +63,15 @@ export interface FrontendAdapter {
 }
 
 /**
+ * Generates Nest CLI plugin metadata (Swagger/GraphQL) ahead of the SWC
+ * transform, since SWC can't run the plugins inline. Emits a `metadata.ts`
+ * into the app's source dir.
+ */
+export interface MetadataGenerator {
+  generate(project: Project, root: string): Promise<void>
+}
+
+/**
  * Everything the orchestrator needs to actually compile things.
  * The CLI wires concrete adapters here so core stays free of impl deps.
  */
@@ -71,4 +80,6 @@ export interface BuildEnv {
   getDtsBuilder(): DtsBuilder
   getTypeChecker(): TypeChecker
   getFrontendAdapter(name: string): FrontendAdapter
+  /** Optional: metadata generator for Nest CLI plugins (swagger/graphql). */
+  getMetadataGenerator?(): MetadataGenerator
 }

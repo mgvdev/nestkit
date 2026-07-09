@@ -27,6 +27,8 @@ export interface NestkitProjectConfig {
   tsconfig?: string
   /** Fixed port for `nestkit dev` (apps). Otherwise auto-assigned from a base. */
   devPort?: number
+  /** Nest CLI plugins to run at build (SWC can't run them inline): swagger / graphql. */
+  nestPlugins?: string[]
 }
 
 /** A raw package.json (only the fields nestkit reads). */
@@ -82,6 +84,8 @@ export interface Project {
   assets: string[]
   /** Fixed dev port for apps, or null to auto-assign. */
   devPort: number | null
+  /** Nest CLI plugins to run at build (e.g. ["swagger"]). */
+  nestPlugins: string[]
   /** Absolute tsconfig path. */
   tsconfig: string
   packageJson: PackageJson

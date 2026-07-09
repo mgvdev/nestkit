@@ -1,0 +1,38 @@
+{
+  "name": "@mgvdev/nestkit-nest-plugin",
+  "version": "0.1.2",
+  "description": "Run NestJS CLI plugins (Swagger/GraphQL) under SWC by generating metadata at build.",
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@mgvdev/nestkit-core": "^0.1.2"
+  },
+  "peerDependencies": {
+    "@nestjs/cli": ">=10",
+    "@nestjs/swagger": ">=7",
+    "@nestjs/graphql": ">=12",
+    "typescript": ">=5.0.0 <7"
+  },
+  "peerDependenciesMeta": {
+    "@nestjs/swagger": { "optional": true },
+    "@nestjs/graphql": { "optional": true }
+  },
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mgvdev/nestkit.git",
+    "directory": "packages/nest-plugin"
+  },
+  "homepage": "https://github.com/mgvdev/nestkit#readme",
+  "bugs": { "url": "https://github.com/mgvdev/nestkit/issues" }
+}

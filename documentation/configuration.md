@@ -28,6 +28,7 @@ without one is visible to the graph but not compiled by nestkit.
 | `adapter` | app-frontend | `vite` | Frontend adapter name. |
 | `assets` | app, lib | `[]` | Glob patterns copied verbatim into `outDir`. |
 | `devPort` | app | auto | Fixed `PORT` for `nestkit dev`; otherwise auto-assigned (base + index). |
+| `nestPlugins` | app | `[]` | Nest CLI plugins to run at build: `["swagger"]` / `["graphql"]`. See [Nest plugins](./nest-plugins.md). |
 | `tsconfig` | all | `tsconfig.json` | Used for typecheck and `.d.ts`. |
 
 ## Project types

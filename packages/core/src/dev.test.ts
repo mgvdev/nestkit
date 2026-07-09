@@ -17,6 +17,7 @@ function proj(name: string, type: ProjectType | null, localDeps: string[] = []):
     adapter: type === 'app-frontend' ? 'vite' : null,
     assets: [],
     devPort: null,
+    nestPlugins: [],
     tsconfig: `/ws/${name}/tsconfig.json`,
     packageJson: { name },
     localDeps,

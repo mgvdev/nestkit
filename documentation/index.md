@@ -20,6 +20,7 @@ Webpack-based monorepo mode with a package-based project graph, using **SWC** fo
 - [Configuration (`nestkit.json`)](./configuration.md) — the per-package descriptor.
 - [Commands](./commands.md) — full CLI reference.
 - [Package Managers](./package-managers.md) — npm / pnpm / Yarn / Bun specifics.
+- [Nest plugins (Swagger/GraphQL under SWC)](./nest-plugins.md).
 - [Migrating from the Nest CLI](./migration.md).
 - [Troubleshooting](./troubleshooting.md) — DI, aliases, TS6059, and more.
 

@@ -5,13 +5,7 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
-  "references": [
-    { "path": "../core" },
-    { "path": "../compiler-swc" },
-    { "path": "../compiler-tsc" },
-    { "path": "../adapter-vite" },
-    { "path": "../nest-plugin" }
-  ],
+  "references": [{ "path": "../core" }],
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts", "dist"]
 }

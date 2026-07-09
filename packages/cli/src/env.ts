@@ -2,6 +2,7 @@ import { viteAdapter } from '@mgvdev/nestkit-adapter-vite'
 import { swcCompiler } from '@mgvdev/nestkit-compiler-swc'
 import { tscCompiler, tscDtsBuilder, tscTypeChecker } from '@mgvdev/nestkit-compiler-tsc'
 import type { BuildEnv, CompilerAdapter, FrontendAdapter } from '@mgvdev/nestkit-core'
+import { nestPluginMetadataGenerator } from '@mgvdev/nestkit-nest-plugin'
 
 const compilers: Record<string, CompilerAdapter> = {
   swc: swcCompiler,
@@ -27,5 +28,6 @@ export function createBuildEnv(): BuildEnv {
       if (!adapter) throw new Error(`Unknown frontend adapter: "${name}"`)
       return adapter
     },
+    getMetadataGenerator: () => nestPluginMetadataGenerator,
   }
 }

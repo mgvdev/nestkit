@@ -21,6 +21,7 @@
     "@mgvdev/nestkit-compiler-swc": "^0.1.2",
     "@mgvdev/nestkit-compiler-tsc": "^0.1.2",
     "@mgvdev/nestkit-core": "^0.1.2",
+    "@mgvdev/nestkit-nest-plugin": "^0.1.2",
     "citty": "^0.1.6",
     "consola": "^3.2.3"
   },

@@ -113,6 +113,13 @@ export async function buildProject(
     return adapter.build(ctx)
   }
 
+  // Nest CLI plugins (swagger/graphql) can't run inside SWC — generate their
+  // metadata.ts first so the transform picks it up.
+  if (project.type === 'app' && project.nestPlugins.length > 0) {
+    const gen = env.getMetadataGenerator?.()
+    if (gen) await gen.generate(project, root)
+  }
+
   const compiler = env.getCompiler(project.compiler)
   const result = await compiler.build(ctx)
 

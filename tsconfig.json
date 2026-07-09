@@ -5,6 +5,7 @@
     { "path": "packages/compiler-swc" },
     { "path": "packages/compiler-tsc" },
     { "path": "packages/adapter-vite" },
+    { "path": "packages/nest-plugin" },
     { "path": "packages/cli" }
   ]
 }
