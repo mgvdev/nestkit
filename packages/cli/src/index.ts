@@ -4,6 +4,7 @@ import { addCommand } from './commands/add.js'
 import { buildCommand } from './commands/build.js'
 import { cleanCommand } from './commands/clean.js'
 import { devCommand } from './commands/dev.js'
+import { doctorCommand } from './commands/doctor.js'
 import { generateCommand } from './commands/generate.js'
 import { graphCommand } from './commands/graph.js'
 import { initCommand } from './commands/init.js'
@@ -30,6 +31,7 @@ const main = defineCommand({
     add: addCommand,
     dev: devCommand,
     typecheck: typecheckCommand,
+    doctor: doctorCommand,
     sync: syncCommand,
     clean: cleanCommand,
     'migrate-from-nest-cli': migrateCommand,

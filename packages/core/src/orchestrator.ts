@@ -1,5 +1,7 @@
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
+import { affectedProjects } from './affected.js'
+import { hashProject, isCached, loadCache, saveCache } from './cache.js'
 import type { BuildEnv, BuildResult } from './compiler.js'
 import {
   type ProjectGraph,
@@ -32,6 +34,10 @@ export interface BuildOptions {
   /** Explicit project targets. Ignored when `all` is true. */
   targets?: string[]
   all?: boolean
+  /** Build only projects affected by changes since this git ref (+ dependents). */
+  affected?: string
+  /** Skip the content-hash cache (rebuild everything selected). */
+  noCache?: boolean
   env: BuildEnv
 }
 
@@ -40,33 +46,57 @@ export async function buildWorkspace(opts: BuildOptions): Promise<void> {
   const { graph } = loadWorkspaceGraph(opts.root)
   const { levels } = topoSort(graph)
 
-  const selected = opts.all
-    ? new Set(graph.nodes.keys())
-    : selectWithDeps(
-        graph,
-        (opts.targets ?? []).map((t) => resolveProjectName(graph, t)),
-      )
+  let selected: Set<string>
+  if (opts.affected) selected = affectedProjects(graph, opts.root, opts.affected)
+  else if (opts.all) selected = new Set(graph.nodes.keys())
+  else
+    selected = selectWithDeps(
+      graph,
+      (opts.targets ?? []).map((t) => resolveProjectName(graph, t)),
+    )
 
   const managedSelected = [...selected].filter((n) => graph.nodes.get(n)?.managed)
   if (managedSelected.length === 0) {
-    logger.warn('No managed nestkit projects selected (missing nestkit.json?).')
+    logger.warn(
+      opts.affected
+        ? `No managed projects affected since ${opts.affected}.`
+        : 'No managed nestkit projects selected (missing nestkit.json?).',
+    )
     return
   }
 
+  const cache = opts.noCache ? {} : loadCache(opts.root)
+  const hashes: Record<string, string> = {}
+  let built = 0
+  let cached = 0
+
   const start = performance.now()
   for (const level of levels) {
-    const batch = level.filter((n) => selected.has(n) && graph.nodes.get(n)?.managed)
+    const batch = level.filter((n) => graph.nodes.get(n)?.managed)
     await Promise.all(
       batch.map(async (name) => {
         const project = graph.nodes.get(name)!
+        // Hash every managed project (even unselected) so dependents' hashes are correct.
+        const hash = hashProject(project, hashes)
+        hashes[name] = hash
+        if (!selected.has(name)) return
+
+        if (!opts.noCache && isCached(project, hash, cache)) {
+          cached++
+          logger.log(`${c.dim('cached')} ${c.bold(name)}`)
+          return
+        }
         const result = await buildProject(project, opts.root, opts.env, false)
+        cache[name] = hash
+        built++
         logger.success(
           `${c.bold(name)} ${c.dim(`(${project.type})`)} built in ${ms(result.durationMs)}`,
         )
       }),
     )
   }
-  logger.info(`Done in ${ms(performance.now() - start)}`)
+  if (!opts.noCache) saveCache(opts.root, cache)
+  logger.info(`Done in ${ms(performance.now() - start)} — ${built} built, ${cached} cached`)
 }
 
 /** Build a single project through the right adapter. */
@@ -93,11 +123,24 @@ export async function buildProject(
   return result
 }
 
-/** Run a whole-graph type check. */
-export async function typecheckWorkspace(root: string, env: BuildEnv): Promise<boolean> {
-  const { projects } = loadWorkspaceGraph(root)
+/** Run a whole-graph type check (optionally limited to affected projects). */
+export async function typecheckWorkspace(
+  root: string,
+  env: BuildEnv,
+  affected?: string,
+): Promise<boolean> {
+  const { projects, graph } = loadWorkspaceGraph(root)
+  const affectedSet = affected ? affectedProjects(graph, root, affected) : null
   // Frontend projects (Vite, etc.) run their own type checking; tsc covers apps and libs.
-  const managed = projects.filter((p) => p.managed && p.type !== 'app-frontend')
+  const managed = projects.filter(
+    (p) => p.managed && p.type !== 'app-frontend' && (!affectedSet || affectedSet.has(p.name)),
+  )
+  if (managed.length === 0) {
+    logger.info(
+      affected ? `No affected projects to typecheck since ${affected}.` : 'Nothing to typecheck.',
+    )
+    return true
+  }
   const result = await env.getTypeChecker().check(managed, root)
   if (result.output.trim()) logger.log(result.output.trimEnd())
   if (result.ok) logger.success('Typecheck passed')

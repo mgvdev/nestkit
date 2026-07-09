@@ -41,9 +41,11 @@ Extra arguments are forwarded to the PM (e.g. `nestkit install --frozen-lockfile
 ## `nestkit graph [--json]`
 Print the project graph, build levels, and each project's local dependencies.
 
-## `nestkit build <project> | --all`
-Build a project and its local-dependency closure, or every managed project, in dependency order.
-Libraries emit `.d.ts`; apps are SWC-transformed; frontends build via Vite.
+## `nestkit build <project> | --all | --affected <ref>`
+Build a project and its local-dependency closure, every managed project, or only those changed since a
+git ref (plus their dependents). In dependency order; libraries emit `.d.ts`, apps are SWC-transformed,
+frontends build via Vite. A **content-hash cache** skips unchanged projects (`cached …`); pass
+`--no-cache` to force a rebuild.
 
 ## `nestkit dev <projects…> | --all`
 Run one or more projects in watch mode with rebuild + restart.
@@ -61,9 +63,16 @@ Run one or more projects in watch mode with rebuild + restart.
 - `--typecheck` (default true) runs typecheck out-of-band on changes.
 - Pointing `dev` at a library is an error.
 
-## `nestkit typecheck`
-Run `tsc --noEmit` across managed apps and libraries. Exits non-zero on errors. Frontends run their
-own type checking and are excluded.
+## `nestkit typecheck [--affected <ref>]`
+Run `tsc --noEmit` across managed apps and libraries (or only those affected since a git ref). Exits
+non-zero on errors. Frontends run their own type checking and are excluded.
+
+## `nestkit doctor [--fix]`
+Diagnose common footguns: `import type` on an injected provider (breaks DI), a workspace package
+imported but not declared as a dependency, a `rootDir` that trips TS6059, a missing
+`tsconfig.base.json`, an unsupported TypeScript (7.x), and Nest-looking packages without a
+`nestkit.json`. `--fix` applies the auto-fixable ones (runs `nestkit sync`). Exits non-zero if any
+error-level issue is found.
 
 ## `nestkit sync`
 (Re)generate `tsconfig.base.json` path aliases so libraries import by name with autocompletion. Run
