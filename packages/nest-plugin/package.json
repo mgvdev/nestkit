@@ -28,10 +28,16 @@
     "typescript": ">=5.0.0 <7"
   },
   "peerDependenciesMeta": {
+    "@nestjs/cli": {
+      "optional": true
+    },
     "@nestjs/swagger": {
       "optional": true
     },
     "@nestjs/graphql": {
+      "optional": true
+    },
+    "typescript": {
       "optional": true
     }
   },
