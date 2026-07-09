@@ -28,12 +28,20 @@ const LIB_TSCONFIG = {
 }
 
 function appFiles(name: string): FileMap {
+  const bare = name.split('/').pop() ?? name
   return {
     'package.json': j({
       name,
       version: '1.0.0',
       private: true,
       main: './dist/main.js',
+      scripts: {
+        dev: `nestkit dev ${bare}`,
+        build: `nestkit build ${bare}`,
+        typecheck: 'nestkit typecheck',
+        test: 'vitest run',
+        lint: 'biome check .',
+      },
       dependencies: {
         '@nestjs/common': '^10.4.15',
         '@nestjs/core': '^10.4.15',
@@ -111,6 +119,12 @@ function libFiles(name: string): FileMap {
       private: true,
       main: './dist/index.js',
       types: './dist/index.d.ts',
+      scripts: {
+        build: `nestkit build ${name.split('/').pop() ?? name}`,
+        typecheck: 'nestkit typecheck',
+        test: 'vitest run',
+        lint: 'biome check .',
+      },
       dependencies: { '@nestjs/common': '^10.4.15' },
     }),
     'nestkit.json': j({ type: 'lib' }),

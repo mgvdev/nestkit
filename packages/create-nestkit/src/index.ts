@@ -9,6 +9,7 @@ import {
   applyEcosystem,
   ensureEmptyDir,
   gitInit,
+  runInit,
   runInstall,
   runNestkit,
   writeRootFiles,
@@ -41,6 +42,7 @@ const main = defineCommand({
     pm: { type: 'string', description: 'Force a package manager (npm|pnpm|yarn|bun).' },
     git: { type: 'boolean', default: true, description: 'Initialize a git repo.' },
     install: { type: 'boolean', default: true, description: 'Install project dependencies.' },
+    init: { type: 'boolean', default: true, description: 'Run selected ecosystem packages’ setup (e.g. nest-boost install).' },
     yes: { type: 'boolean', description: 'Accept defaults, skip prompts.' },
   },
   async run({ args }) {
@@ -127,9 +129,23 @@ const main = defineCommand({
       ])
     }
 
-    applyEcosystem(target, join(target, 'apps', appName), ecosystemByKeys(catalog, ecoKeys))
+    const chosen = ecosystemByKeys(catalog, ecoKeys)
+    applyEcosystem(target, join(target, 'apps', appName), chosen)
 
     if (doInstall) runInstall(pm, target)
+
+    // Run each selected package's init command (e.g. nest-boost install). Needs the
+    // deps installed and an interactive terminal (these setups usually prompt).
+    if (doInstall && args.init && process.stdin.isTTY) {
+      for (const p of chosen) {
+        if (!p.init) continue
+        consola.info(`Initializing ${pc.bold(p.key)}...`)
+        if (!runInit(target, p.init.bin, p.init.args)) {
+          consola.warn(`Skipped ${p.key} init (run \`${p.init.bin} ${p.init.args.join(' ')}\` yourself).`)
+        }
+      }
+    }
+
     if (doGit) gitInit(target)
 
     consola.success(`Created ${pc.bold(name)}`)

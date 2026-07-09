@@ -1,6 +1,6 @@
 {
   "name": "@mgvdev/nestkit-adapter-vite",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "First-class Vite adapter for nestkit frontend apps (app-frontend).",
   "type": "module",
   "license": "MIT",
@@ -19,7 +19,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@mgvdev/nestkit-core": "^0.2.1"
+    "@mgvdev/nestkit-core": "^0.2.2"
   },
   "peerDependencies": {
     "vite": ">=5.0.0"

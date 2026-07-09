@@ -29,7 +29,9 @@ export interface RootOptions {
 export function writeRootFiles(target: string, opts: RootOptions): void {
   const devDependencies: Record<string, string> = {
     '@mgvdev/nestkit-cli': '^0.2.0',
+    '@biomejs/biome': '^1.9.4',
     typescript: '>=5 <7',
+    vitest: '^2.1.8',
   }
   if (opts.frontend) {
     devDependencies['@mgvdev/nestkit-adapter-vite'] = '^0.2.0'
@@ -39,8 +41,31 @@ export function writeRootFiles(target: string, opts: RootOptions): void {
     name: opts.name,
     private: true,
     workspaces: ['apps/*', 'packages/*'],
+    scripts: {
+      build: 'nestkit build --all',
+      dev: 'nestkit dev --all',
+      typecheck: 'nestkit typecheck',
+      test: 'vitest run',
+      lint: 'biome check .',
+      format: 'biome format --write .',
+      clean: 'nestkit clean',
+      graph: 'nestkit graph',
+    },
     devDependencies,
   })
+  writeFileSync(
+    join(target, 'biome.json'),
+    `${JSON.stringify(
+      {
+        $schema: 'https://biomejs.dev/schemas/1.9.4/schema.json',
+        files: { ignore: ['**/dist/**', '**/*.tsbuildinfo'] },
+        formatter: { enabled: true, indentStyle: 'space' },
+        linter: { enabled: true, rules: { recommended: true } },
+      },
+      null,
+      2,
+    )}\n`,
+  )
   if (opts.pm === 'pnpm') {
     writeFileSync(
       join(target, 'pnpm-workspace.yaml'),
@@ -71,6 +96,14 @@ export function runNestkit(target: string, args: string[]): void {
   if (res.status !== 0) throw new Error(`nestkit ${args.join(' ')} failed`)
 }
 
+/** Run a package's post-install init command from its local bin (best-effort). */
+export function runInit(target: string, bin: string, args: string[]): boolean {
+  const path = join(target, 'node_modules', '.bin', bin)
+  if (!existsSync(path)) return false
+  const res = spawnSync(path, args, { cwd: target, stdio: 'inherit' })
+  return res.status === 0
+}
+
 /** Add selected ecosystem packages to the app deps / root devDeps. */
 export function applyEcosystem(target: string, appDir: string, packages: EcoPackage[]): void {
   const appDeps = packages.filter((p) => p.target === 'app-dep')
@@ -82,11 +115,14 @@ export function applyEcosystem(target: string, appDir: string, packages: EcoPack
     for (const p of appDeps) j.dependencies[p.npm] = 'latest'
     writeJson(f, j)
   }
-  if (rootDev.length > 0) {
+  const withScripts = packages.filter((p) => p.rootScripts)
+  if (rootDev.length > 0 || withScripts.length > 0) {
     const f = join(target, 'package.json')
     const j = readJson(f)
     j.devDependencies ??= {}
     for (const p of rootDev) j.devDependencies[p.npm] = 'latest'
+    j.scripts ??= {}
+    for (const p of withScripts) Object.assign(j.scripts, p.rootScripts)
     writeJson(f, j)
   }
 }

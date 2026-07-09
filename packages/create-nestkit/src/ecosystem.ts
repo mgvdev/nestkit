@@ -1,9 +1,19 @@
+/** Post-install init command a package can declare (run from its local bin). */
+export interface EcoInit {
+  bin: string
+  args: string[]
+}
+
 export interface EcoPackage {
   key: string
   npm: string
   /** Where to add it: the app's runtime deps, or the root devDependencies. */
   target: 'app-dep' | 'root-dev'
   desc: string
+  /** Optional setup command run after install (e.g. nest-boost install). */
+  init?: EcoInit
+  /** Optional scripts to merge into the root package.json (e.g. { boost: "nest-boost" }). */
+  rootScripts?: Record<string, string>
 }
 
 /** Remote manifest URL (site-owned). Falls back to the built-in list when unreachable. */
@@ -16,6 +26,8 @@ export const FALLBACK_ECOSYSTEM: EcoPackage[] = [
     npm: '@mgvdev/nest-boost',
     target: 'root-dev',
     desc: 'AI/MCP toolkit that teaches coding agents your Nest app',
+    init: { bin: 'nest-boost', args: ['install'] },
+    rootScripts: { boost: 'nest-boost' },
   },
   {
     key: 'nestjs-ai',
@@ -25,6 +37,11 @@ export const FALLBACK_ECOSYSTEM: EcoPackage[] = [
   },
 ]
 
+function isEcoInit(x: unknown): x is EcoInit {
+  const o = x as Record<string, unknown>
+  return !!o && typeof o.bin === 'string' && Array.isArray(o.args) && o.args.every((a) => typeof a === 'string')
+}
+
 function isEcoPackage(x: unknown): x is EcoPackage {
   const o = x as Record<string, unknown>
   return (
@@ -32,7 +49,9 @@ function isEcoPackage(x: unknown): x is EcoPackage {
     typeof o.key === 'string' &&
     typeof o.npm === 'string' &&
     (o.target === 'app-dep' || o.target === 'root-dev') &&
-    typeof o.desc === 'string'
+    typeof o.desc === 'string' &&
+    (o.init === undefined || isEcoInit(o.init)) &&
+    (o.rootScripts === undefined || (typeof o.rootScripts === 'object' && o.rootScripts !== null))
   )
 }
 
