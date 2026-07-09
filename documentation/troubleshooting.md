@@ -47,11 +47,11 @@ custom paths in a different tsconfig.
 ## "needs the classic TypeScript compiler API (TypeScript 5.x)"
 
 `nestkit typecheck` and library `.d.ts` generation use TypeScript's classic compiler API, which
-TypeScript **7.x** (the native port) no longer exposes the same way. Install `typescript@^5` as a
-devDependency:
+TypeScript **7.x** (the native/Go port) no longer exposes the same way. TypeScript **5.x and 6.x**
+work; install one of those as a devDependency:
 
 ```bash
-npm i -D typescript@^5
+npm i -D "typescript@>=5 <7"
 ```
 
 SWC-based transforms, `graph`, `dev`, and `build` for apps don't need TypeScript and work regardless.
