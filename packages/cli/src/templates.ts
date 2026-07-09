@@ -40,7 +40,6 @@ function appFiles(name: string): FileMap {
         build: `nestkit build ${bare}`,
         typecheck: 'nestkit typecheck',
         test: 'vitest run',
-        lint: 'biome check .',
       },
       dependencies: {
         '@nestjs/common': '^10.4.15',
@@ -123,7 +122,6 @@ function libFiles(name: string): FileMap {
         build: `nestkit build ${name.split('/').pop() ?? name}`,
         typecheck: 'nestkit typecheck',
         test: 'vitest run',
-        lint: 'biome check .',
       },
       dependencies: { '@nestjs/common': '^10.4.15' },
     }),

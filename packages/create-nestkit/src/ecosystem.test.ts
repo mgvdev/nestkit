@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ecosystemByKeys, FALLBACK_ECOSYSTEM, parseManifest } from './ecosystem.js'
+import { FALLBACK_ECOSYSTEM, ecosystemByKeys, parseManifest } from './ecosystem.js'
 
 describe('ecosystemByKeys', () => {
   it('resolves by key or npm name and ignores unknown', () => {

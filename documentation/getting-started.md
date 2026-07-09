@@ -15,9 +15,11 @@ cd my-app
 npx nestkit dev api
 ```
 
-It prompts for an app name, an optional shared library and Vite frontend, and offers to add packages
-from the [mgvdev ecosystem](https://nestjs.mgvdev.io) (`@mgvdev/nest-boost`, `@mgvdev/nestjs-ai`).
-Non-interactive: `npm create @mgvdev/nestkit my-app -- --yes --lib --with nestjs-ai`.
+It prompts for an app name, an optional shared library and Vite frontend, a **linter/formatter**
+(Biome · ESLint + Prettier · oxlint + oxfmt), and offers to add packages from the
+[mgvdev ecosystem](https://nestjs.mgvdev.io) (`@mgvdev/nest-boost`, `@mgvdev/nestjs-ai`). Selecting
+`nest-boost` runs its setup (`nest-boost install`) at the end and adds a `boost` root script.
+Non-interactive: `npm create @mgvdev/nestkit my-app -- --yes --lib --linter eslint-prettier --with nestjs-ai`.
 
 ### Ecosystem manifest
 

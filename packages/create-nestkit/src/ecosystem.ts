@@ -39,7 +39,12 @@ export const FALLBACK_ECOSYSTEM: EcoPackage[] = [
 
 function isEcoInit(x: unknown): x is EcoInit {
   const o = x as Record<string, unknown>
-  return !!o && typeof o.bin === 'string' && Array.isArray(o.args) && o.args.every((a) => typeof a === 'string')
+  return (
+    !!o &&
+    typeof o.bin === 'string' &&
+    Array.isArray(o.args) &&
+    o.args.every((a) => typeof a === 'string')
+  )
 }
 
 function isEcoPackage(x: unknown): x is EcoPackage {

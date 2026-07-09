@@ -4,6 +4,7 @@ import { defineCommand, runMain } from 'citty'
 import { consola } from 'consola'
 import pc from 'picocolors'
 import { ecosystemByKeys, fetchEcosystem } from './ecosystem.js'
+import { LINTERS, type LinterChoice, isLinterChoice } from './linters.js'
 import { type PackageManager, detectPackageManager, runLabel } from './pm.js'
 import {
   applyEcosystem,
@@ -35,6 +36,11 @@ const main = defineCommand({
       default: 'vanilla-ts',
       description: 'create-vite template for the frontend.',
     },
+    linter: {
+      type: 'string',
+      default: 'biome',
+      description: 'Linter/formatter: biome | eslint-prettier | oxlint-oxfmt.',
+    },
     with: {
       type: 'string',
       description: 'Comma-separated ecosystem packages (e.g. nest-boost,nestjs-ai).',
@@ -42,7 +48,11 @@ const main = defineCommand({
     pm: { type: 'string', description: 'Force a package manager (npm|pnpm|yarn|bun).' },
     git: { type: 'boolean', default: true, description: 'Initialize a git repo.' },
     install: { type: 'boolean', default: true, description: 'Install project dependencies.' },
-    init: { type: 'boolean', default: true, description: 'Run selected ecosystem packages’ setup (e.g. nest-boost install).' },
+    init: {
+      type: 'boolean',
+      default: true,
+      description: 'Run selected ecosystem packages’ setup (e.g. nest-boost install).',
+    },
     yes: { type: 'boolean', description: 'Accept defaults, skip prompts.' },
   },
   async run({ args }) {
@@ -77,6 +87,16 @@ const main = defineCommand({
         )
       : Boolean(args.frontend)
 
+    let linter: LinterChoice = isLinterChoice(args.linter) ? args.linter : 'biome'
+    if (interactive) {
+      const picked = await consola.prompt('Linter & formatter?', {
+        type: 'select',
+        initial: linter,
+        options: Object.values(LINTERS).map((l) => ({ label: l.label, value: l.key })),
+      })
+      if (typeof picked === 'string' && isLinterChoice(picked)) linter = picked
+    }
+
     const catalog = await fetchEcosystem()
     let ecoKeys = args.with
       ? String(args.with)
@@ -108,7 +128,7 @@ const main = defineCommand({
     const target = resolve(process.cwd(), name)
     consola.start(`Creating ${pc.bold(name)} with ${pc.cyan(pm)}...`)
     ensureEmptyDir(target)
-    writeRootFiles(target, { name, pm, frontend: withFrontend })
+    writeRootFiles(target, { name, pm, frontend: withFrontend, linter })
 
     // Install nestkit-cli first so its bin is available for scaffolding.
     runInstall(pm, target)
@@ -141,7 +161,9 @@ const main = defineCommand({
         if (!p.init) continue
         consola.info(`Initializing ${pc.bold(p.key)}...`)
         if (!runInit(target, p.init.bin, p.init.args)) {
-          consola.warn(`Skipped ${p.key} init (run \`${p.init.bin} ${p.init.args.join(' ')}\` yourself).`)
+          consola.warn(
+            `Skipped ${p.key} init (run \`${p.init.bin} ${p.init.args.join(' ')}\` yourself).`,
+          )
         }
       }
     }

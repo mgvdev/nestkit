@@ -2,6 +2,7 @@ import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { EcoPackage } from './ecosystem.js'
+import { LINTERS, type LinterChoice } from './linters.js'
 import { type PackageManager, installCommand } from './pm.js'
 
 function writeJson(file: string, value: unknown): void {
@@ -23,15 +24,17 @@ export interface RootOptions {
   name: string
   pm: PackageManager
   frontend: boolean
+  linter: LinterChoice
 }
 
-/** Write the workspace root files (package.json, tsconfig.base.json, .gitignore, pnpm-workspace). */
+/** Write the workspace root files (package.json, tsconfig.base.json, .gitignore, linter config). */
 export function writeRootFiles(target: string, opts: RootOptions): void {
+  const linter = LINTERS[opts.linter]
   const devDependencies: Record<string, string> = {
     '@mgvdev/nestkit-cli': '^0.2.0',
-    '@biomejs/biome': '^1.9.4',
     typescript: '>=5 <7',
     vitest: '^2.1.8',
+    ...linter.devDependencies,
   }
   if (opts.frontend) {
     devDependencies['@mgvdev/nestkit-adapter-vite'] = '^0.2.0'
@@ -46,26 +49,16 @@ export function writeRootFiles(target: string, opts: RootOptions): void {
       dev: 'nestkit dev --all',
       typecheck: 'nestkit typecheck',
       test: 'vitest run',
-      lint: 'biome check .',
-      format: 'biome format --write .',
+      lint: linter.scripts.lint,
+      format: linter.scripts.format,
       clean: 'nestkit clean',
       graph: 'nestkit graph',
     },
     devDependencies,
   })
-  writeFileSync(
-    join(target, 'biome.json'),
-    `${JSON.stringify(
-      {
-        $schema: 'https://biomejs.dev/schemas/1.9.4/schema.json',
-        files: { ignore: ['**/dist/**', '**/*.tsbuildinfo'] },
-        formatter: { enabled: true, indentStyle: 'space' },
-        linter: { enabled: true, rules: { recommended: true } },
-      },
-      null,
-      2,
-    )}\n`,
-  )
+  for (const [file, content] of Object.entries(linter.files)) {
+    writeFileSync(join(target, file), content)
+  }
   if (opts.pm === 'pnpm') {
     writeFileSync(
       join(target, 'pnpm-workspace.yaml'),
