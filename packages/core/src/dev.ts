@@ -6,6 +6,10 @@ import { type ProjectGraph, resolveProjectName, selectWithDeps, topoSort } from 
 import { c, logger, ms } from './logger.js'
 import { buildProject, loadWorkspaceGraph } from './orchestrator.js'
 import type { Project } from './types.js'
+import { loadWorkspaceConfig } from './workspace-config.js'
+
+/** JS runtime used to launch an app process. */
+type Runtime = 'node' | 'bun'
 
 export interface DevOptions {
   root: string
@@ -105,6 +109,10 @@ export async function dev(opts: DevOptions): Promise<DevController> {
   const runnables = resolveDevTargets(graph, opts)
   const labelOf = makeLabels(runnables)
 
+  // The Bun HTTP adapter needs the Bun runtime (it references the global `Bun`);
+  // launch app processes with `bun` when the workspace targets that adapter.
+  const runtime: Runtime = loadWorkspaceConfig(opts.root)?.httpAdapter === 'bun' ? 'bun' : 'node'
+
   // Union of every target's local-dep closure, plus which targets each project feeds.
   const watched = new Map<string, Project>()
   const dependents = new Map<string, string[]>()
@@ -133,7 +141,7 @@ export async function dev(opts: DevOptions): Promise<DevController> {
 
   const runners = new Map<string, Runner>()
   runnables.forEach((r, index) => {
-    const runner = createRunner(r, labelOf.get(r.name)!, opts, sink, index)
+    const runner = createRunner(r, labelOf.get(r.name)!, opts, sink, index, runtime)
     runners.set(r.name, runner)
     runner.start()
   })
@@ -190,6 +198,7 @@ function createRunner(
   opts: DevOptions,
   sink: OutputSink,
   index: number,
+  runtime: Runtime,
 ): Runner {
   let child: ChildProcess | null = null
   let frontend: { close(): Promise<void> } | null = null
@@ -201,18 +210,29 @@ function createRunner(
 
   const startApp = () => {
     if (!target.entryOut) throw new Error(`App "${target.name}" has no entry output`)
-    const nodeArgs: string[] = []
-    if (opts.inspectBrk) nodeArgs.push(`--inspect-brk=${inspectPort}`)
-    else if (opts.inspect) nodeArgs.push(`--inspect=${inspectPort}`)
-    nodeArgs.push(target.entryOut)
+    // Node uses its own binary (process.execPath); Bun apps need the `bun`
+    // executable from PATH so the global `Bun` API is available at runtime.
+    const exec = runtime === 'bun' ? 'bun' : process.execPath
+    const args: string[] = []
+    if (opts.inspectBrk) args.push(`--inspect-brk=${inspectPort}`)
+    else if (opts.inspect) args.push(`--inspect=${inspectPort}`)
+    args.push(target.entryOut)
 
-    child = spawn(process.execPath, nodeArgs, {
+    child = spawn(exec, args, {
       cwd: target.dir,
       stdio: ['inherit', 'pipe', 'pipe'],
       env: { ...process.env, PORT: String(port) },
     })
     const inspectNote = opts.inspect || opts.inspectBrk ? `  inspect :${inspectPort}` : ''
-    sink.note(label, `starting on port ${port}${inspectNote}`)
+    const runtimeNote = runtime === 'bun' ? ' (bun)' : ''
+    sink.note(label, `starting on port ${port}${runtimeNote}${inspectNote}`)
+    child.on('error', (err: NodeJS.ErrnoException) => {
+      const hint =
+        runtime === 'bun' && err.code === 'ENOENT'
+          ? ' — is Bun installed and on PATH? (https://bun.sh)'
+          : ''
+      sink.write(label, 'err', `failed to start with ${exec}: ${err.message}${hint}`)
+    })
     child.stdout?.on('data', (d: Buffer) => sink.write(label, 'out', d.toString()))
     child.stderr?.on('data', (d: Buffer) => sink.write(label, 'err', d.toString()))
     child.on('exit', (code, signal) => {
