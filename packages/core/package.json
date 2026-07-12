@@ -1,6 +1,6 @@
 {
   "name": "@mgvdev/nestkit-core",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "nestkit workspace engine: project graph, package-manager detection, orchestrator and dev runtime.",
   "type": "module",
   "license": "MIT",
