@@ -1,10 +1,9 @@
-import type { ProjectType } from '@mgvdev/nestkit-core'
+import type { HttpAdapter, ProjectType } from '@mgvdev/nestkit-core'
 
 /** A set of files to write, keyed by path relative to the new package dir. */
 export type FileMap = Record<string, string>
 
 export type TestRunner = 'jest' | 'vitest' | 'none'
-export type HttpAdapter = 'express' | 'fastify'
 
 export interface AppOptions {
   adapter: HttpAdapter
@@ -26,7 +25,7 @@ export const DEFAULT_APP_OPTIONS: AppOptions = {
 
 const j = (o: unknown) => `${JSON.stringify(o, null, 2)}\n`
 
-const NEST = '^10.4.15'
+const NEST = '^11.0.0'
 
 const APP_TSCONFIG = {
   compilerOptions: {
@@ -149,6 +148,21 @@ import { AppModule } from './app.module'
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter())
 ${validationLine}  await app.listen(process.env.PORT ?? 3000, '0.0.0.0')
+  console.log('[${bare}] listening')
+}
+
+bootstrap()
+`
+  }
+  if (opts.adapter === 'bun') {
+    return `import 'reflect-metadata'
+${validationImport}import { NestFactory } from '@nestjs/core'
+import { BunHttpAdapter } from '@mgvdev/nestjs-bun-adapter'
+import { AppModule } from './app.module'
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule, new BunHttpAdapter())
+${validationLine}  await app.listen(process.env.PORT ?? 3000)
   console.log('[${bare}] listening')
 }
 
@@ -281,9 +295,13 @@ function appFiles(name: string, opts: AppOptions): FileMap {
   const dependencies: Record<string, string> = {
     '@nestjs/common': NEST,
     '@nestjs/core': NEST,
-    [`@nestjs/platform-${opts.adapter}`]: NEST,
     'reflect-metadata': '^0.2.2',
     rxjs: '^7.8.1',
+  }
+  if (opts.adapter === 'bun') {
+    dependencies['@mgvdev/nestjs-bun-adapter'] = '^0.1.0'
+  } else {
+    dependencies[`@nestjs/platform-${opts.adapter}`] = NEST
   }
   if (opts.config) dependencies['@nestjs/config'] = '^3.3.0'
   if (opts.validation) {
@@ -306,7 +324,7 @@ function appFiles(name: string, opts: AppOptions): FileMap {
       dependencies,
       devDependencies: { '@types/node': '^22.10.0', ...testDeps(opts.test, opts.e2e) },
     }),
-    'nestkit.json': j({ type: 'app', entry: 'src/main.ts' }),
+    'nestkit.json': j({ type: 'app', entry: 'src/main.ts', adapter: opts.adapter }),
     'tsconfig.json': j(APP_TSCONFIG),
     'src/app.controller.ts': appController(name, opts),
     'src/app.module.ts': appModule(opts),

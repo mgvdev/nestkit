@@ -1,6 +1,10 @@
 import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import {
+  type NestkitWorkspaceConfig,
+  writeWorkspaceConfig as writeCoreWorkspaceConfig,
+} from '@mgvdev/nestkit-core'
 import type { EcoPackage } from './ecosystem.js'
 import { LINTERS, type LinterChoice } from './linters.js'
 import { type PackageManager, installCommand } from './pm.js'
@@ -152,4 +156,9 @@ export function gitInit(target: string): void {
   } catch {
     /* git is optional */
   }
+}
+
+/** Write the workspace-level config that future `nestkit generate app` calls will read. */
+export function writeWorkspaceConfig(target: string, cfg: NestkitWorkspaceConfig): void {
+  writeCoreWorkspaceConfig(target, cfg)
 }

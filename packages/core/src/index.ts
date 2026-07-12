@@ -1,6 +1,7 @@
 export * from './types.js'
 export * from './config.js'
 export * from './workspace.js'
+export * from './workspace-config.js'
 export * from './project.js'
 export * from './graph.js'
 export * from './tsconfig.js'

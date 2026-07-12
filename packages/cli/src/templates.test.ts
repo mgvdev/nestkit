@@ -46,6 +46,13 @@ describe('app template — adapter', () => {
     expect(pkg.dependencies).toHaveProperty('@nestjs/platform-fastify')
     expect(files['src/main.ts']).toContain('new FastifyAdapter()')
   })
+  it('bun: nestjs-bun-adapter + BunHttpAdapter bootstrap', () => {
+    const { files, pkg } = app({ adapter: 'bun' })
+    expect(pkg.dependencies).toHaveProperty('@mgvdev/nestjs-bun-adapter')
+    expect(pkg.dependencies).not.toHaveProperty('@nestjs/platform-express')
+    expect(files['src/main.ts']).toContain('new BunHttpAdapter()')
+    expect(files['nestkit.json']).toContain('"adapter": "bun"')
+  })
 })
 
 describe('app template — extras', () => {

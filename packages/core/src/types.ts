@@ -7,6 +7,9 @@ export type ProjectType = 'app' | 'lib' | 'app-frontend'
 /** Built-in compilers for the transform step. */
 export type CompilerName = 'swc' | 'tsc'
 
+/** Supported NestJS HTTP server adapters. */
+export type HttpAdapter = 'express' | 'fastify' | 'bun'
+
 /** Raw shape of a per-package `nestkit.json` file. */
 export interface NestkitProjectConfig {
   /** Project kind. Required. */
@@ -91,4 +94,10 @@ export interface Project {
   packageJson: PackageJson
   /** Names of local (workspace) packages this project depends on. */
   localDeps: string[]
+}
+
+/** Raw shape of the workspace-level `nestkit.workspace.json` file. */
+export interface NestkitWorkspaceConfig {
+  /** Default HTTP adapter for new apps in this workspace. */
+  httpAdapter?: HttpAdapter
 }

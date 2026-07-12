@@ -2,10 +2,12 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import {
+  type HttpAdapter,
   type ProjectType,
   c,
   detectPackageManager,
   ensureWorkspaceGlob,
+  loadWorkspaceConfig,
   loadWorkspaceGraph,
   logger,
   resolveProjectName,
@@ -28,6 +30,25 @@ import {
 
 const normalizeTest = (t: string): TestRunner =>
   t === 'vitest' ? 'vitest' : t === 'none' ? 'none' : 'jest'
+
+const VALID_ADAPTERS: HttpAdapter[] = ['express', 'fastify', 'bun']
+
+function defaultAdapter(root: string, pm: string): HttpAdapter {
+  const cfg = loadWorkspaceConfig(root)
+  if (cfg?.httpAdapter) return cfg.httpAdapter
+  return pm === 'bun' ? 'bun' : 'express'
+}
+
+function normalizeAdapter(root: string, pm: string, value: string | undefined): HttpAdapter {
+  const raw = value ?? defaultAdapter(root, pm)
+  if (raw === 'bun' && pm !== 'bun') {
+    logger.warn('The Bun adapter is only available when using Bun — falling back to express.')
+    return 'express'
+  }
+  if (VALID_ADAPTERS.includes(raw as HttpAdapter)) return raw as HttpAdapter
+  logger.warn(`Unknown adapter "${raw}" — falling back to express.`)
+  return 'express'
+}
 
 const KINDS: Record<string, ProjectType> = {
   app: 'app',
@@ -195,8 +216,7 @@ export const generateCommand = defineCommand({
     },
     adapter: {
       type: 'string',
-      default: 'express',
-      description: 'HTTP adapter for apps: express | fastify.',
+      description: 'HTTP adapter for apps: express | fastify | bun. Bun is the default under Bun.',
     },
     test: { type: 'string', default: 'jest', description: 'Test runner: jest | vitest | none.' },
     service: { type: 'boolean', default: true, description: 'App: include a service + unit spec.' },
@@ -259,9 +279,10 @@ export const generateCommand = defineCommand({
       }
     } else {
       logger.info(`Generating ${c.cyan(kind)} ${c.bold(pkgName)} in ${c.dim(targetRel)}`)
+      const adapter = normalizeAdapter(root, pm, args.adapter)
       const templateOpts: TemplateOptions = {
         app: {
-          adapter: args.adapter === 'fastify' ? 'fastify' : 'express',
+          adapter,
           test: normalizeTest(args.test),
           service: args.service,
           e2e: args.e2e,

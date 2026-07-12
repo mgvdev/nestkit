@@ -46,7 +46,7 @@ export function resolveProject(pkg: WorkspacePackage, localNames: Set<string>): 
     outDir,
     entry,
     entryOut,
-    adapter: type === 'app-frontend' ? (cfg?.adapter ?? 'vite') : null,
+    adapter: cfg?.adapter ?? (type === 'app-frontend' ? 'vite' : null),
     assets: cfg?.assets ?? [],
     devPort: cfg?.devPort ?? null,
     nestPlugins: cfg?.nestPlugins ?? [],

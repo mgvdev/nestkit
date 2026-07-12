@@ -15,13 +15,20 @@ function hasDep(pkg: PackageJson, name: string): boolean {
   )
 }
 
+/** Guess the HTTP adapter used by an existing Nest app. */
+function inferHttpAdapter(pkg: PackageJson): 'express' | 'fastify' | 'bun' {
+  if (hasDep(pkg, '@mgvdev/nestjs-bun-adapter')) return 'bun'
+  if (hasDep(pkg, '@nestjs/platform-fastify')) return 'fastify'
+  return 'express'
+}
+
 /** Infer a project descriptor from a package's shape. */
 function inferConfig(dir: string, pkg: PackageJson): NestkitProjectConfig {
   if (hasDep(pkg, 'vite') || hasDep(pkg, 'react') || hasDep(pkg, 'vue')) {
     return { type: 'app-frontend', adapter: 'vite' }
   }
   const isNestApp = hasDep(pkg, '@nestjs/core') && existsSync(join(dir, 'src', 'main.ts'))
-  if (isNestApp) return { type: 'app', entry: 'src/main.ts' }
+  if (isNestApp) return { type: 'app', entry: 'src/main.ts', adapter: inferHttpAdapter(pkg) }
   return { type: 'lib' }
 }
 

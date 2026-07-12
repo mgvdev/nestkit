@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { type AppChoices, generateAppArgs } from './app-options.js'
+import { type AppChoices, defaultAppChoices, generateAppArgs } from './app-options.js'
 
 const base: AppChoices = {
   test: 'jest',
@@ -43,5 +43,17 @@ describe('generateAppArgs', () => {
         '--validation',
       ]),
     )
+  })
+})
+
+describe('defaultAppChoices', () => {
+  it('defaults to express under npm/pnpm/yarn', () => {
+    expect(defaultAppChoices('npm').adapter).toBe('express')
+    expect(defaultAppChoices('pnpm').adapter).toBe('express')
+    expect(defaultAppChoices('yarn').adapter).toBe('express')
+  })
+
+  it('defaults to bun under bun', () => {
+    expect(defaultAppChoices('bun').adapter).toBe('bun')
   })
 })

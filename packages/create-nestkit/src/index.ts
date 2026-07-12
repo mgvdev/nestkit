@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 import { join, resolve } from 'node:path'
+import type { HttpAdapter } from '@mgvdev/nestkit-core'
 import { defineCommand, runMain } from 'citty'
 import { consola } from 'consola'
 import pc from 'picocolors'
 import {
   type AppChoices,
-  DEFAULT_APP_CHOICES,
   EXTRAS,
-  type HttpAdapter,
   type TestRunner,
+  defaultAppChoices,
   generateAppArgs,
 } from './app-options.js'
 import { ecosystemByKeys, fetchEcosystem } from './ecosystem.js'
@@ -22,6 +22,7 @@ import {
   runInstall,
   runNestkit,
   writeRootFiles,
+  writeWorkspaceConfig,
 } from './scaffold.js'
 
 const main = defineCommand({
@@ -53,7 +54,7 @@ const main = defineCommand({
     adapter: {
       type: 'string',
       default: 'express',
-      description: 'HTTP adapter: express | fastify.',
+      description: 'HTTP adapter: express | fastify | bun. Defaults to bun under Bun.',
     },
     service: { type: 'boolean', default: true, description: 'App: service + unit spec.' },
     e2e: { type: 'boolean', default: true, description: 'App: e2e tests.' },
@@ -117,12 +118,17 @@ const main = defineCommand({
 
     // App options: test runner, HTTP adapter, extras.
     const app: AppChoices = {
+      ...defaultAppChoices(pm),
       test: (args.test === 'vitest' ? 'vitest' : 'jest') as TestRunner,
-      adapter: (args.adapter === 'fastify' ? 'fastify' : 'express') as HttpAdapter,
       service: args.service !== false,
       e2e: args.e2e !== false,
       config: Boolean(args.config),
       validation: Boolean(args.validation),
+    }
+    if (args.adapter === 'fastify' || (args.adapter === 'bun' && pm === 'bun')) {
+      app.adapter = args.adapter as HttpAdapter
+    } else if (args.adapter !== undefined && args.adapter !== 'express') {
+      app.adapter = pm === 'bun' ? 'bun' : 'express'
     }
     if (interactive) {
       app.test = (await consola.prompt('Test runner?', {
@@ -133,13 +139,15 @@ const main = defineCommand({
           { label: 'Vitest (light, ESM)', value: 'vitest' },
         ],
       })) as TestRunner
+      const adapterOptions = [
+        { label: 'Express', value: 'express' },
+        { label: 'Fastify', value: 'fastify' },
+        ...(pm === 'bun' ? [{ label: 'Bun (Bun.serve)', value: 'bun' }] : []),
+      ]
       app.adapter = (await consola.prompt('HTTP adapter?', {
         type: 'select',
         initial: app.adapter,
-        options: [
-          { label: 'Express', value: 'express' },
-          { label: 'Fastify', value: 'fastify' },
-        ],
+        options: adapterOptions,
       })) as HttpAdapter
       const picked = await consola.prompt('Include in the app?', {
         type: 'multiselect',
@@ -147,7 +155,7 @@ const main = defineCommand({
         options: EXTRAS.map((e) => ({
           label: e.label,
           value: e.key,
-          selected: DEFAULT_APP_CHOICES[e.key],
+          selected: defaultAppChoices(pm)[e.key],
         })),
       })
       const set = new Set(Array.isArray(picked) ? (picked as unknown as string[]) : [])
@@ -189,6 +197,7 @@ const main = defineCommand({
     consola.start(`Creating ${pc.bold(name)} with ${pc.cyan(pm)}...`)
     ensureEmptyDir(target)
     writeRootFiles(target, { name, pm, frontend: withFrontend, linter })
+    writeWorkspaceConfig(target, { httpAdapter: app.adapter })
 
     // Install nestkit-cli first so its bin is available for scaffolding.
     runInstall(pm, target)

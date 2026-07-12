@@ -1,5 +1,6 @@
+import type { HttpAdapter, PackageManager } from '@mgvdev/nestkit-core'
+
 export type TestRunner = 'jest' | 'vitest'
-export type HttpAdapter = 'express' | 'fastify'
 
 export interface AppChoices {
   test: TestRunner
@@ -10,13 +11,15 @@ export interface AppChoices {
   validation: boolean
 }
 
-export const DEFAULT_APP_CHOICES: AppChoices = {
-  test: 'jest',
-  adapter: 'express',
-  service: true,
-  e2e: true,
-  config: false,
-  validation: false,
+export function defaultAppChoices(pm: PackageManager): AppChoices {
+  return {
+    test: 'jest',
+    adapter: pm === 'bun' ? 'bun' : 'express',
+    service: true,
+    e2e: true,
+    config: false,
+    validation: false,
+  }
 }
 
 export const EXTRAS = [
