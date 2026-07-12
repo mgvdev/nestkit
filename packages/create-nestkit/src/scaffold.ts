@@ -49,12 +49,12 @@ export interface RootOptions {
 export function writeRootFiles(target: string, opts: RootOptions): void {
   const linter = LINTERS[opts.linter]
   const devDependencies: Record<string, string> = {
-    '@mgvdev/nestkit-cli': '^0.2.0',
+    '@mgvdev/nestkit-cli': '^0.3.0',
     typescript: '>=5 <7',
     ...linter.devDependencies,
   }
   if (opts.frontend) {
-    devDependencies['@mgvdev/nestkit-adapter-vite'] = '^0.2.0'
+    devDependencies['@mgvdev/nestkit-adapter-vite'] = '^0.3.0'
     devDependencies.vite = '^6.0.0'
   }
   writeJson(join(target, 'package.json'), {
