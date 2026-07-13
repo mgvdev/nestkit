@@ -9,6 +9,7 @@ export interface AppChoices {
   e2e: boolean
   config: boolean
   validation: boolean
+  orpc: boolean
 }
 
 export function defaultAppChoices(pm: PackageManager): AppChoices {
@@ -19,6 +20,7 @@ export function defaultAppChoices(pm: PackageManager): AppChoices {
     e2e: true,
     config: false,
     validation: false,
+    orpc: false,
   }
 }
 
@@ -27,10 +29,19 @@ export const EXTRAS = [
   { key: 'e2e', label: 'End-to-end tests' },
   { key: 'config', label: '@nestjs/config + .env' },
   { key: 'validation', label: 'Validation (class-validator + ValidationPipe)' },
+  { key: 'orpc', label: 'oRPC contract API (+ Zod) — contract in the shared lib' },
 ] as const
 
-/** Build the `nestkit generate app` argv for the chosen options. */
-export function generateAppArgs(app: string, scope: string, c: AppChoices): string[] {
+/**
+ * Build the `nestkit generate app` argv for the chosen options.
+ * `orpcContract` is the npm name of the lib holding the contract (when oRPC is on).
+ */
+export function generateAppArgs(
+  app: string,
+  scope: string,
+  c: AppChoices,
+  orpcContract?: string,
+): string[] {
   return [
     'generate',
     'app',
@@ -45,5 +56,7 @@ export function generateAppArgs(app: string, scope: string, c: AppChoices): stri
     c.e2e ? '--e2e' : '--no-e2e',
     ...(c.config ? ['--config'] : []),
     ...(c.validation ? ['--validation'] : []),
+    ...(c.orpc ? ['--orpc'] : []),
+    ...(c.orpc && orpcContract ? ['--orpc-contract', orpcContract] : []),
   ]
 }

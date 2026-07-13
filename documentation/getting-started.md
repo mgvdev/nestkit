@@ -17,7 +17,8 @@ npx nestkit dev api
 
 It prompts for an app name, an optional shared library and Vite frontend, a **test runner**
 (Jest · Vitest), an **HTTP adapter** (Express · Fastify), app extras (service, e2e, config,
-validation), a **linter/formatter** (Biome · ESLint + Prettier · oxlint + oxfmt), and offers to add
+validation, **oRPC** contract API), a **linter/formatter** (Biome · ESLint + Prettier · oxlint +
+oxfmt), and offers to add
 packages from the
 [mgvdev ecosystem](https://nestjs.mgvdev.io) (`@mgvdev/nest-boost`, `@mgvdev/nestjs-ai`). Selecting
 `nest-boost` runs its setup (`nest-boost install`) at the end and adds a `boost` root script.

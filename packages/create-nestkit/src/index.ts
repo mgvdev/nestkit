@@ -60,6 +60,10 @@ const main = defineCommand({
     e2e: { type: 'boolean', default: true, description: 'App: e2e tests.' },
     config: { type: 'boolean', description: 'App: @nestjs/config + .env.' },
     validation: { type: 'boolean', description: 'App: class-validator + ValidationPipe.' },
+    orpc: {
+      type: 'boolean',
+      description: 'App: oRPC contract API (+ Zod). Adds a shared lib for the contract.',
+    },
     with: {
       type: 'string',
       description: 'Comma-separated ecosystem packages (e.g. nest-boost,nestjs-ai).',
@@ -124,6 +128,7 @@ const main = defineCommand({
       e2e: args.e2e !== false,
       config: Boolean(args.config),
       validation: Boolean(args.validation),
+      orpc: Boolean(args.orpc),
     }
     if (args.adapter === 'fastify' || (args.adapter === 'bun' && pm === 'bun')) {
       app.adapter = args.adapter as HttpAdapter
@@ -163,6 +168,7 @@ const main = defineCommand({
       app.e2e = set.has('e2e')
       app.config = set.has('config')
       app.validation = set.has('validation')
+      app.orpc = set.has('orpc')
     }
 
     const catalog = await fetchEcosystem()
@@ -201,9 +207,29 @@ const main = defineCommand({
 
     // Install nestkit-cli first so its bin is available for scaffolding.
     runInstall(pm, target)
-    runNestkit(target, generateAppArgs(appName, args.scope, app))
-    if (withLib) {
-      runNestkit(target, ['generate', 'lib', 'shared', '--scope', args.scope, '--test', app.test])
+
+    // oRPC keeps its contract in the shared library, so it implies one.
+    const needLib = withLib || app.orpc
+    const scope = args.scope.startsWith('@') ? args.scope : `@${args.scope}`
+    const sharedName = `${scope}/shared`
+
+    if (needLib) {
+      if (app.orpc && !withLib) {
+        consola.info('oRPC needs a shared library for the contract — adding one.')
+      }
+      runNestkit(target, [
+        'generate',
+        'lib',
+        'shared',
+        '--scope',
+        args.scope,
+        '--test',
+        app.test,
+        ...(app.orpc ? ['--orpc'] : []),
+      ])
+    }
+    runNestkit(target, generateAppArgs(appName, args.scope, app, app.orpc ? sharedName : undefined))
+    if (needLib) {
       runNestkit(target, ['add', 'shared', '--to', appName, '--no-install'])
     }
     if (withFrontend) {

@@ -12,6 +12,10 @@ export interface AppOptions {
   e2e: boolean
   config: boolean
   validation: boolean
+  /** Scaffold an oRPC contract API (+ Zod). */
+  orpc: boolean
+  /** npm name of the lib holding the oRPC contract; when set, the app imports it from there. */
+  orpcContract?: string
 }
 
 export const DEFAULT_APP_OPTIONS: AppOptions = {
@@ -21,11 +25,14 @@ export const DEFAULT_APP_OPTIONS: AppOptions = {
   e2e: true,
   config: false,
   validation: false,
+  orpc: false,
 }
 
 const j = (o: unknown) => `${JSON.stringify(o, null, 2)}\n`
 
 const NEST = '^11.0.0'
+const ORPC = '^1.14.0'
+const ZOD = '^4.3.6'
 
 const APP_TSCONFIG = {
   compilerOptions: {
@@ -129,6 +136,54 @@ function testConfigFiles(runner: TestRunner, e2e: boolean): FileMap {
   return {}
 }
 
+// ── oRPC templates ──────────────────────────────────────────────────────────
+
+/** Zod schemas + oRPC contract (shared by the lib and the standalone-app fallback). */
+function orpcContractFile(): string {
+  return `import { oc, populateContractRouterPaths } from '@orpc/contract'
+import * as z from 'zod'
+
+export const PlanetSchema = z.object({
+  id: z.number().int().min(1),
+  name: z.string(),
+  description: z.string().optional(),
+})
+
+export const listPlanetContract = oc
+  .route({ method: 'GET', path: '/planets' })
+  .input(
+    z.object({
+      limit: z.number().int().min(1).max(100).optional(),
+      cursor: z.number().int().min(0).default(0),
+    }),
+  )
+  .output(z.array(PlanetSchema))
+
+export const contract = populateContractRouterPaths({
+  planet: { list: listPlanetContract },
+})
+`
+}
+
+/** The @Implement controller wiring a contract into the app. */
+function orpcController(contractPkg: string): string {
+  return `import { Controller } from '@nestjs/common'
+import { Implement, implement } from '@orpc/nest'
+import { contract } from '${contractPkg}'
+
+@Controller()
+export class PlanetController {
+  @Implement(contract.planet.list)
+  list() {
+    return implement(contract.planet.list).handler(() => {
+      // TODO: replace with real data (input.limit / input.cursor are available on the handler).
+      return [{ id: 1, name: 'Tatooine' }]
+    })
+  }
+}
+`
+}
+
 // ── App template ────────────────────────────────────────────────────────────
 
 function appMain(name: string, opts: AppOptions): string {
@@ -139,6 +194,8 @@ function appMain(name: string, opts: AppOptions): string {
   const validationLine = opts.validation
     ? '  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }))\n'
     : ''
+  // oRPC parses request bodies itself, so Nest's body parser must be disabled.
+  const createOpts = opts.orpc ? ', { bodyParser: false }' : ''
   if (opts.adapter === 'fastify') {
     return `import 'reflect-metadata'
 ${validationImport}import { NestFactory } from '@nestjs/core'
@@ -146,7 +203,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { AppModule } from './app.module'
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter())
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter()${createOpts})
 ${validationLine}  await app.listen(process.env.PORT ?? 3000, '0.0.0.0')
   console.log('[${bare}] listening')
 }
@@ -161,7 +218,7 @@ import { BunHttpAdapter } from '@mgvdev/nestjs-bun-adapter'
 import { AppModule } from './app.module'
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, new BunHttpAdapter())
+  const app = await NestFactory.create(AppModule, new BunHttpAdapter()${createOpts})
 ${validationLine}  await app.listen(process.env.PORT ?? 3000)
   console.log('[${bare}] listening')
 }
@@ -174,7 +231,7 @@ ${validationImport}import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule)
+  const app = await NestFactory.create(AppModule${createOpts})
 ${validationLine}  await app.listen(process.env.PORT ?? 3000)
   console.log('[${bare}] listening')
 }
@@ -186,12 +243,30 @@ bootstrap()
 function appModule(opts: AppOptions): string {
   const imports: string[] = ["import { Module } from '@nestjs/common'"]
   if (opts.config) imports.push("import { ConfigModule } from '@nestjs/config'")
+  if (opts.orpc) {
+    imports.push("import { REQUEST } from '@nestjs/core'")
+    imports.push("import { onError, ORPCModule } from '@orpc/nest'")
+  }
   imports.push("import { AppController } from './app.controller'")
+  if (opts.orpc) imports.push("import { PlanetController } from './planet.controller'")
   if (opts.service) imports.push("import { AppService } from './app.service'")
 
+  const moduleImports: string[] = []
+  if (opts.config) moduleImports.push('ConfigModule.forRoot({ isGlobal: true })')
+  if (opts.orpc) {
+    moduleImports.push(`ORPCModule.forRootAsync({
+      useFactory: (request: unknown) => ({
+        interceptors: [onError((error) => console.error(error))],
+        context: { request },
+      }),
+      inject: [REQUEST],
+    })`)
+  }
+  const controllers = ['AppController', ...(opts.orpc ? ['PlanetController'] : [])]
+
   const decoratorLines: string[] = []
-  if (opts.config) decoratorLines.push('  imports: [ConfigModule.forRoot({ isGlobal: true })],')
-  decoratorLines.push('  controllers: [AppController],')
+  if (moduleImports.length) decoratorLines.push(`  imports: [${moduleImports.join(', ')}],`)
+  decoratorLines.push(`  controllers: [${controllers.join(', ')}],`)
   if (opts.service) decoratorLines.push('  providers: [AppService],')
 
   return `${imports.join('\n')}
@@ -308,6 +383,16 @@ function appFiles(name: string, opts: AppOptions): FileMap {
     dependencies['class-validator'] = '^0.14.1'
     dependencies['class-transformer'] = '^0.5.1'
   }
+  if (opts.orpc) {
+    dependencies['@orpc/nest'] = ORPC
+    dependencies['@orpc/server'] = ORPC
+    // The contract lib brings @orpc/contract + zod transitively, but a standalone
+    // app (no contract lib) defines the contract locally and needs them directly.
+    if (!opts.orpcContract) {
+      dependencies['@orpc/contract'] = ORPC
+      dependencies.zod = ZOD
+    }
+  }
 
   const files: FileMap = {
     'package.json': j({
@@ -350,6 +435,13 @@ export class AppService {
     files['.env'] = 'PORT=3000\n'
     files['.env.example'] = 'PORT=3000\n'
   }
+
+  if (opts.orpc) {
+    const contractPkg = opts.orpcContract ?? './contract'
+    files['src/planet.controller.ts'] = orpcController(contractPkg)
+    // No contract lib provided → keep the contract next to the implementation.
+    if (!opts.orpcContract) files['src/contract.ts'] = orpcContractFile()
+  }
   return files
 }
 
@@ -378,6 +470,8 @@ export function kebabCase(name: string): string {
 
 export interface LibOptions {
   test: TestRunner
+  /** Add an oRPC contract (+ Zod) to the library, exported from its barrel. */
+  orpc?: boolean
 }
 
 function libFiles(name: string, opts: LibOptions): FileMap {
@@ -386,6 +480,12 @@ function libFiles(name: string, opts: LibOptions): FileMap {
   const pascal = pascalCase(name)
   const service = `${pascal}Service`
   const module = `${pascal}Module`
+
+  const dependencies: Record<string, string> = { '@nestjs/common': NEST }
+  if (opts.orpc) {
+    dependencies['@orpc/contract'] = ORPC
+    dependencies.zod = ZOD
+  }
 
   const files: FileMap = {
     'package.json': j({
@@ -399,7 +499,7 @@ function libFiles(name: string, opts: LibOptions): FileMap {
         typecheck: 'nestkit typecheck',
         ...testScripts(opts.test, false),
       },
-      dependencies: { '@nestjs/common': NEST },
+      dependencies,
       devDependencies: testDeps(opts.test, false),
     }),
     'nestkit.json': j({ type: 'lib' }),
@@ -424,9 +524,10 @@ export class ${module} {}
 `,
     'src/index.ts': `export * from './${base}.service'
 export * from './${base}.module'
-`,
+${opts.orpc ? "export * from './contract'\n" : ''}`,
     ...testConfigFiles(opts.test, false),
   }
+  if (opts.orpc) files['src/contract.ts'] = orpcContractFile()
   if (opts.test !== 'none') {
     files[`src/${base}.service.spec.ts`] = `import { ${service} } from './${base}.service'
 
@@ -478,6 +579,7 @@ export interface TemplateOptions {
 /** Build the file map for a given project kind. */
 export function templateFor(kind: ProjectType, name: string, opts?: TemplateOptions): FileMap {
   if (kind === 'app') return appFiles(name, { ...DEFAULT_APP_OPTIONS, ...opts?.app })
-  if (kind === 'lib') return libFiles(name, { test: opts?.lib?.test ?? 'jest' })
+  if (kind === 'lib')
+    return libFiles(name, { test: opts?.lib?.test ?? 'jest', orpc: opts?.lib?.orpc })
   return frontendFiles(name)
 }

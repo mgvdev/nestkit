@@ -223,6 +223,11 @@ export const generateCommand = defineCommand({
     e2e: { type: 'boolean', default: true, description: 'App: include an e2e test suite.' },
     config: { type: 'boolean', description: 'App: include @nestjs/config + .env.' },
     validation: { type: 'boolean', description: 'App: include class-validator + ValidationPipe.' },
+    orpc: { type: 'boolean', description: 'App/lib: scaffold an oRPC contract API (+ Zod).' },
+    'orpc-contract': {
+      type: 'string',
+      description: 'App: npm name of the lib holding the oRPC contract to implement.',
+    },
     install: { type: 'boolean', description: 'Run the package manager install afterwards.' },
     dry: { type: 'boolean', description: 'Preview without writing.' },
   },
@@ -288,8 +293,10 @@ export const generateCommand = defineCommand({
           e2e: args.e2e,
           config: Boolean(args.config),
           validation: Boolean(args.validation),
+          orpc: Boolean(args.orpc),
+          orpcContract: args['orpc-contract'],
         },
-        lib: { test: normalizeTest(args.test) },
+        lib: { test: normalizeTest(args.test), orpc: Boolean(args.orpc) },
       }
       const files = templateFor(kind, pkgName, templateOpts)
       if (args.dry) {

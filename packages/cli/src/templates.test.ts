@@ -73,6 +73,36 @@ describe('app template — extras', () => {
     expect(pkg.dependencies).toHaveProperty('class-validator')
     expect(files['src/main.ts']).toContain('ValidationPipe')
   })
+
+  it('orpc (standalone): @orpc/nest deps, controller, module + bodyParser, local contract', () => {
+    const { files, pkg } = app({ orpc: true })
+    expect(pkg.dependencies).toHaveProperty('@orpc/nest')
+    expect(pkg.dependencies).toHaveProperty('@orpc/contract')
+    expect(pkg.dependencies).toHaveProperty('zod')
+    expect(files['src/planet.controller.ts']).toContain("from './contract'")
+    expect(files['src/contract.ts']).toContain('populateContractRouterPaths')
+    expect(files['src/app.module.ts']).toContain('ORPCModule.forRootAsync')
+    expect(files['src/main.ts']).toContain('bodyParser: false')
+  })
+
+  it('orpc (contract in a lib): imports the lib, no local contract, no @orpc/contract dep', () => {
+    const { files, pkg } = app({ orpc: true, orpcContract: '@app/shared' })
+    expect(pkg.dependencies).toHaveProperty('@orpc/nest')
+    expect(pkg.dependencies).not.toHaveProperty('@orpc/contract')
+    expect(files['src/contract.ts']).toBeUndefined()
+    expect(files['src/planet.controller.ts']).toContain("from '@app/shared'")
+  })
+})
+
+describe('lib template — orpc', () => {
+  it('ships a contract, exports it, and adds @orpc/contract + zod', () => {
+    const files = templateFor('lib', '@app/shared', { lib: { test: 'jest', orpc: true } })
+    const pkg = JSON.parse(files['package.json']!)
+    expect(pkg.dependencies).toHaveProperty('@orpc/contract')
+    expect(pkg.dependencies).toHaveProperty('zod')
+    expect(files['src/contract.ts']).toContain('populateContractRouterPaths')
+    expect(files['src/index.ts']).toContain("export * from './contract'")
+  })
 })
 
 describe('lib template', () => {

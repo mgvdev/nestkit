@@ -8,6 +8,7 @@ const base: AppChoices = {
   e2e: true,
   config: false,
   validation: false,
+  orpc: false,
 }
 
 describe('generateAppArgs', () => {
@@ -19,6 +20,18 @@ describe('generateAppArgs', () => {
     )
     expect(a).not.toContain('--config')
     expect(a).not.toContain('--validation')
+    expect(a).not.toContain('--orpc')
+  })
+
+  it('adds --orpc and --orpc-contract when oRPC is chosen', () => {
+    const a = generateAppArgs('api', '@app', { ...base, orpc: true }, '@app/shared')
+    expect(a).toEqual(expect.arrayContaining(['--orpc', '--orpc-contract', '@app/shared']))
+  })
+
+  it('omits --orpc-contract when no contract package is given', () => {
+    const a = generateAppArgs('api', '@app', { ...base, orpc: true })
+    expect(a).toContain('--orpc')
+    expect(a).not.toContain('--orpc-contract')
   })
 
   it('negates service/e2e and adds config/validation when chosen', () => {
